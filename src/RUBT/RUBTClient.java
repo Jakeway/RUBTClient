@@ -10,7 +10,9 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import GivenTools.Bencoder2;
 import GivenTools.BencodingException;
+import GivenTools.ToolKit;
 import GivenTools.TorrentInfo;
 
 public class RUBTClient 
@@ -19,6 +21,7 @@ public class RUBTClient
 	{
 		
 		TorrentInfo ti = null;
+		String announceURL = "";
 		
 		if(args.length > 2 || args.length <= 1)
 		{
@@ -38,12 +41,36 @@ public class RUBTClient
 			System.exit(1);
 		}
 		
+		
+		
+		
 		ti = getTorrentInfo(torrentFile);
 		
-		System.out.println(ti.file_name);
-		System.out.println(ti.announce_url);
+
+		int length = ti.file_length;
 		
-		String trackerResponse = sendGetRequest(ti.announce_url);
+		
+		String encodedHash="";
+		try 
+		{
+			encodedHash = byteArrayToURLString(ti.info_hash.array());
+		} catch (Exception e) {
+		
+			e.printStackTrace();
+		}
+		 
+		
+		announceURL = ti.announce_url.toExternalForm();
+		String trackerURL = announceURL + "?info_hash=" + encodedHash
+				+ "&peer_id=tomjakewaynrobcasale"
+				+ "&left=" + length
+				+ "&port=" + "6881"
+				+ "&downloaded=" + "0";
+		
+		System.out.println(trackerURL);
+		
+		
+		String trackerResponse = sendGetRequest(trackerURL);
 		System.out.println(trackerResponse);
 	}
 	
@@ -86,8 +113,14 @@ public class RUBTClient
 		return ti;
 	}
 	
-	public static String sendGetRequest(URL u)
+	public static String sendGetRequest(String trackerURL)
 	{
+		URL u = null;
+		try {
+			u = new URL(trackerURL);
+		} catch (MalformedURLException e1) {
+			e1.printStackTrace();
+		}
 		String contents = "";
 		try 
 		{
@@ -105,7 +138,47 @@ public class RUBTClient
 		}
 		
 		return contents;
-		
-		
 	}
+	
+	
+	  public static String byteArrayToURLString(byte in[]) 
+	  {
+		    byte ch = 0x00;
+		    int i = 0;
+		    if (in == null || in.length <= 0)
+		      return null;
+
+		    String pseudo[] = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+		        "A", "B", "C", "D", "E", "F" };
+		    StringBuffer out = new StringBuffer(in.length * 2);
+
+		    while (i < in.length) {
+		      // First check to see if we need ASCII or HEX
+		      if ((in[i] >= '0' && in[i] <= '9')
+		          || (in[i] >= 'a' && in[i] <= 'z')
+		          || (in[i] >= 'A' && in[i] <= 'Z') || in[i] == '$'
+		          || in[i] == '-' || in[i] == '_' || in[i] == '.'
+		          || in[i] == '!') {
+		        out.append((char) in[i]);
+		        i++;
+		      } else {
+		        out.append('%');
+		        ch = (byte) (in[i] & 0xF0); // Strip off high nibble
+		        ch = (byte) (ch >>> 4); // shift the bits down
+		        ch = (byte) (ch & 0x0F); // must do this is high order bit is
+		        // on!
+		        out.append(pseudo[(int) ch]); // convert the nibble to a
+		        // String Character
+		        ch = (byte) (in[i] & 0x0F); // Strip off low nibble
+		        out.append(pseudo[(int) ch]); // convert the nibble to a
+		        // String Character
+		        i++;
+		      }
+		    }
+
+		    String rslt = new String(out);
+
+		    return rslt;
+	  }
+		
 }
