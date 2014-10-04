@@ -7,8 +7,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Map;
 
 import GivenTools.Bencoder2;
 import GivenTools.BencodingException;
@@ -43,7 +46,6 @@ public class RUBTClient
 		
 		
 		
-		
 		ti = getTorrentInfo(torrentFile);
 		
 
@@ -60,9 +62,18 @@ public class RUBTClient
 		}
 		 
 		
+		String peer_id = "tomjakewaynrobcasale";
+		String peer_id_encoded = "";
+		try {
+			peer_id_encoded = URLEncoder.encode(peer_id, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		announceURL = ti.announce_url.toExternalForm();
 		String trackerURL = announceURL + "?info_hash=" + encodedHash
-				+ "&peer_id=tomjakewaynrobcasale"
+				+ "&peer_id=" + peer_id
 				+ "&left=" + length
 				+ "&port=" + "6881"
 				+ "&downloaded=" + "0";
@@ -70,8 +81,19 @@ public class RUBTClient
 		System.out.println(trackerURL);
 		
 		
-		String trackerResponse = sendGetRequest(trackerURL);
-		System.out.println(trackerResponse);
+		byte[] trackerResponse = sendGetRequest(trackerURL).getBytes();
+		Map m = null;
+		//System.out.println(trackerResponse);
+		try {
+			m = (Map) Bencoder2.decode(trackerResponse);
+		} catch (BencodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		ToolKit.printMap(m, 0);
+		
+		
+		
 	}
 	
 	public static TorrentInfo getTorrentInfo(File torrentFile)
@@ -124,6 +146,7 @@ public class RUBTClient
 		String contents = "";
 		try 
 		{
+		
 			BufferedReader br = new BufferedReader(new InputStreamReader(u.openStream()));
 			String line = "";
 			while ((line = br.readLine()) != null)
