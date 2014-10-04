@@ -10,7 +10,12 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import GivenTools.Bencoder2;
@@ -22,6 +27,23 @@ public class RUBTClient
 {
 	public static void main(String[] args)
 	{
+		
+		final ByteBuffer KEY_PEERS = ByteBuffer.wrap(new byte[] {
+				'p', 'e', 'e', 'r', 's' });
+		
+		final ByteBuffer KEY_PEER_ID = ByteBuffer.wrap(new byte[] {
+				'p', 'e', 'e', 'r', ' ', 'i', 'd' });
+		
+		final ByteBuffer KEY_IP = ByteBuffer.wrap(new byte[] {
+				'i', 'p' });
+		
+		final ByteBuffer KEY_PORT = ByteBuffer.wrap(new byte[] {
+				'p', 'o', 'r', 't' });
+		
+		final ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
+				19,'B','i','t','T','o','r','r','e','n','t',' ',
+					'p','r','o','t','o','c','o','l'});
+		
 		
 		TorrentInfo ti = null;
 		String announceURL = "";
@@ -44,8 +66,6 @@ public class RUBTClient
 			System.exit(1);
 		}
 		
-		
-		
 		ti = getTorrentInfo(torrentFile);
 		
 
@@ -63,14 +83,7 @@ public class RUBTClient
 		 
 		
 		String peer_id = "tomjakewaynrobcasale";
-		String peer_id_encoded = "";
-		try {
-			peer_id_encoded = URLEncoder.encode(peer_id, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+
 		announceURL = ti.announce_url.toExternalForm();
 		String trackerURL = announceURL + "?info_hash=" + encodedHash
 				+ "&peer_id=" + peer_id
@@ -82,16 +95,44 @@ public class RUBTClient
 		
 		
 		byte[] trackerResponse = sendGetRequest(trackerURL).getBytes();
-		Map m = null;
+		HashMap<ByteBuffer, Object> trackerResponseMap = null;
+		ArrayList<HashMap<ByteBuffer, Object>> peerDicts = null;
 		//System.out.println(trackerResponse);
 		try {
-			m = (Map) Bencoder2.decode(trackerResponse);
+			trackerResponseMap = 
+					(HashMap<ByteBuffer, Object>) Bencoder2.decode(trackerResponse);
+			
+			peerDicts = 
+					(ArrayList<HashMap<ByteBuffer, Object>>)
+					trackerResponseMap.get(KEY_PEERS);
+
+			String ip = "128.6.171.131";
+			int port = 61350;
+			
+			for (HashMap<ByteBuffer, Object> dicts : peerDicts)
+			{
+				ByteBuffer remotePeerIdBytes = (ByteBuffer) dicts.get(KEY_PEER_ID);
+				
+				String remotePeerId = new String(remotePeerIdBytes.array(), "UTF-8");
+				
+				ByteBuffer remoteIPBytes = (ByteBuffer) dicts.get(KEY_IP);
+				String remoteIP = new String(remoteIPBytes.array(), "UTF-8");
+				
+				int remotePort =  (Integer) dicts.get(KEY_PORT);
+				
+				System.out.println(remotePeerId);
+				System.out.println(remoteIP);
+				System.out.println(remotePort);
+			}
+			
 		} catch (BencodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
 		}
-		ToolKit.printMap(m, 0);
 		
+		ToolKit.printMap(trackerResponseMap, 0);
 		
 		
 	}
