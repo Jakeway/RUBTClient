@@ -1,6 +1,5 @@
 package RUBT;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,13 +15,16 @@ public class Tracker
 	TorrentInfo ti;
 	String peerId = "wearesogoingtofail!!";
 	
+	// response from the Tracker after initial get request
 	private byte[] response;
 	
+	// decoded list of peer dictionaries from Tracker response
 	private ArrayList<HashMap<ByteBuffer, Object>> peerMaps;
 	
+	// decoded dictionary from Tracker response
 	private HashMap<ByteBuffer, Object> trackerResponseMap;
 	
-	
+	// port to contact tracker with
 	private final String TRACKER_PORT = "6881";
 	
 	private final ByteBuffer KEY_PEERS = ByteBuffer.wrap(new byte[] {
@@ -62,6 +64,10 @@ public class Tracker
 		return this.peerMaps;
 	}
 	
+	public void printResponseMap()
+	{
+		ToolKit.printMap(trackerResponseMap, 0);
+	}
 	
 	@SuppressWarnings("unchecked")
 	private void initResponseMap()
@@ -93,6 +99,16 @@ public class Tracker
 		return peerMaps;
 	}
 	
+	private void initPeerList()
+	{
+		for (HashMap<ByteBuffer, Object> peerMap : peerMaps)
+		{
+			ByteBuffer ip = (ByteBuffer) peerMap.get(KEY_IP);
+			
+			int port = (Integer) peerMap.get(KEY_PORT);
+		}
+	}
+	
 	private void getResponse()
 	{
 		
@@ -116,6 +132,7 @@ public class Tracker
 		byte[] trackerResponse = Util.sendGetRequest(trackerURL).getBytes();
 		this.response = trackerResponse;
 	}
+	
 	
 	private void initTracker()
 	{
