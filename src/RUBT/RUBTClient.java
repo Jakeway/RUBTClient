@@ -12,6 +12,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -68,9 +69,7 @@ public class RUBTClient
 		
 		ti = getTorrentInfo(torrentFile);
 		
-
 		int length = ti.file_length;
-		
 		
 		String encodedHash="";
 		try 
@@ -93,10 +92,18 @@ public class RUBTClient
 		
 		System.out.println(trackerURL);
 		
-		
 		byte[] trackerResponse = sendGetRequest(trackerURL).getBytes();
 		HashMap<ByteBuffer, Object> trackerResponseMap = null;
 		ArrayList<HashMap<ByteBuffer, Object>> peerDicts = null;
+		
+		ByteBuffer remotePeerIdBytes = null;
+		
+		byte[] handShake = new byte[68];
+		HANDSHAKE_HEADER.get(handShake, 0, HANDSHAKE_HEADER.remaining());
+		ti.info_hash.get(handShake, 28, ti.info_hash.remaining());
+		
+		//System.out.println("Size: " + encodedHash.length()); is 50
+		//System.out.println("SIZE: " + ti.info_hash.array().length); is 20
 		//System.out.println(trackerResponse);
 		try {
 			trackerResponseMap = 
@@ -111,19 +118,22 @@ public class RUBTClient
 			
 			for (HashMap<ByteBuffer, Object> dicts : peerDicts)
 			{
-				ByteBuffer remotePeerIdBytes = (ByteBuffer) dicts.get(KEY_PEER_ID);
+				remotePeerIdBytes = (ByteBuffer) dicts.get(KEY_PEER_ID);
 				
 				String remotePeerId = new String(remotePeerIdBytes.array(), "UTF-8");
 				
 				ByteBuffer remoteIPBytes = (ByteBuffer) dicts.get(KEY_IP);
 				String remoteIP = new String(remoteIPBytes.array(), "UTF-8");
-				
+				if(remoteIP.equals("128.6.171.131"))
+					break;
 				int remotePort =  (Integer) dicts.get(KEY_PORT);
 				
 				System.out.println(remotePeerId);
 				System.out.println(remoteIP);
 				System.out.println(remotePort);
 			}
+			
+			remotePeerIdBytes.get(handShake, 48, remotePeerIdBytes.remaining()); //it works
 			
 		} catch (BencodingException e) {
 			// TODO Auto-generated catch block
