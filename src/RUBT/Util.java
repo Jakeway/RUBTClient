@@ -122,13 +122,13 @@ public class Util
 		return ti;
 	}
 	
-	public static void addStringToByteArray(byte[] handShake, String peer_id)
+	public static void addStringToByteArray(byte[] array, String s, int offset)
 	{
 		int c = 0;
-		byte[] peer_id_bytes = peer_id.getBytes();
-		for(int i = 48; i < handShake.length; i++)
+		byte[] sBytes = s.getBytes();
+		for(int i = offset; i < array.length; i++)
 		{
-			handShake[i] = peer_id_bytes[c];
+			array[i] = sBytes[c];
 			c++;
 		}
 	}
