@@ -7,9 +7,14 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.Socket;
+import java.net.SocketException;
 import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,7 +79,7 @@ public class RUBTClient
 		String encodedHash="";
 		try 
 		{
-			encodedHash = byteArrayToURLString(ti.info_hash.array());
+			encodedHash = Util.byteArrayToURLString(ti.info_hash.array());
 		} catch (Exception e) {
 		
 			e.printStackTrace();
@@ -102,9 +107,6 @@ public class RUBTClient
 		HANDSHAKE_HEADER.get(handShake, 0, HANDSHAKE_HEADER.remaining());
 		ti.info_hash.get(handShake, 28, ti.info_hash.remaining());
 		
-		//System.out.println("Size: " + encodedHash.length()); is 50
-		//System.out.println("SIZE: " + ti.info_hash.array().length); is 20
-		//System.out.println(trackerResponse);
 		try {
 			trackerResponseMap = 
 					(HashMap<ByteBuffer, Object>) Bencoder2.decode(trackerResponse);
@@ -119,21 +121,54 @@ public class RUBTClient
 			for (HashMap<ByteBuffer, Object> dicts : peerDicts)
 			{
 				remotePeerIdBytes = (ByteBuffer) dicts.get(KEY_PEER_ID);
-				
 				String remotePeerId = new String(remotePeerIdBytes.array(), "UTF-8");
 				
 				ByteBuffer remoteIPBytes = (ByteBuffer) dicts.get(KEY_IP);
 				String remoteIP = new String(remoteIPBytes.array(), "UTF-8");
-				if(remoteIP.equals("128.6.171.131"))
-					break;
+				
 				int remotePort =  (Integer) dicts.get(KEY_PORT);
 				
+				if(remoteIP.equals("128.6.171.131"))
+					break;
+								
 				System.out.println(remotePeerId);
 				System.out.println(remoteIP);
 				System.out.println(remotePort);
 			}
 			
-			remotePeerIdBytes.get(handShake, 48, remotePeerIdBytes.remaining()); //it works
+			Util.addStringToByteArray(handShake, peer_id);
+			
+			System.out.println(new String(handShake));
+			
+			try
+			{
+				Socket peerSocket = new Socket(ip, port);
+				PrintWriter sendToPeer = new PrintWriter(peerSocket.getOutputStream(), true);
+				BufferedReader fromPeer = new BufferedReader(new InputStreamReader(peerSocket.getInputStream()));
+				
+				sendToPeer.println(handShake);
+				System.out.println("peer: " + fromPeer.readLine());
+				
+				//close everything
+				peerSocket.close();
+				sendToPeer.close();
+				fromPeer.close();
+			}
+			catch (UnknownHostException e)
+			{
+				System.err.println("UnknownHostException: " + e.getMessage());
+				System.exit(1);
+			}
+			catch (SocketException e)
+			{
+				System.err.println("SocketException: " + e.getMessage());
+				System.exit(1);
+			}
+			catch (IOException e)
+			{
+				System.err.println("IOException: " + e.getMessage());
+				System.exit(1);
+			}
 			
 		} catch (BencodingException e) {
 			// TODO Auto-generated catch block
@@ -215,7 +250,7 @@ public class RUBTClient
 	}
 	
 	
-	  public static String byteArrayToURLString(byte in[]) 
+	 /* public static String byteArrayToURLString(byte in[]) 
 	  {
 		    byte ch = 0x00;
 		    int i = 0;
@@ -253,6 +288,6 @@ public class RUBTClient
 		    String rslt = new String(out);
 
 		    return rslt;
-	  }
+	  }*/
 		
 }
