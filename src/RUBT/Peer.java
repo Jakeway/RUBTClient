@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -33,11 +34,18 @@ public class Peer {
 	{
 		byte[] handShake = new byte[68];
 		HANDSHAKE_HEADER.get(handShake, 0, HANDSHAKE_HEADER.remaining());
-		ti.info_hash.get(handShake, 28, ti.info_hash.remaining());
+		//ti.info_hash.get(handShake, 28, ti.info_hash.remaining());
+		
+		System.arraycopy(ti.info_hash.array(), 0, handShake, 28, ti.info_hash.array().length);
 		
 		Util.addStringToByteArray(handShake, localID);
 		
-		System.out.println(new String(handShake));
+		try {
+			System.out.println(new String(handShake, "UTF-8"));
+		} catch (UnsupportedEncodingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		try
 		{

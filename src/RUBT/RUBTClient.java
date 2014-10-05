@@ -12,14 +12,7 @@ import GivenTools.*;
 public class RUBTClient 
 {
 	public static void main(String[] args)
-	{
-		
-		
-		final ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
-				19,'B','i','t','T','o','r','r','e','n','t',' ',
-					'p','r','o','t','o','c','o','l'});
-		
-		
+	{		
 		TorrentInfo ti = null;
 		String announceURL = "";
 		
@@ -43,51 +36,11 @@ public class RUBTClient
 		
 		ti = Util.getTorrentInfo(torrentFile);
 		
-		String peer_id = "tomjakewaynrobcasale";
-
+		String localID = "tomjakewaynrobcasale";
 		
-		byte[] handShake = new byte[68];
-		HANDSHAKE_HEADER.get(handShake, 0, HANDSHAKE_HEADER.remaining());
-		ti.info_hash.get(handShake, 28, ti.info_hash.remaining());
-		
-		
-			Util.addStringToByteArray(handShake, peer_id);
-			
-			System.out.println(new String(handShake));
-			
-			try
-			{
-				Socket peerSocket = new Socket(ip, port);
-				PrintWriter sendToPeer = new PrintWriter(peerSocket.getOutputStream(), true);
-				BufferedReader fromPeer = new BufferedReader(new InputStreamReader(peerSocket.getInputStream()));
-				
-				sendToPeer.println(handShake);
-				System.out.println("peer: " + fromPeer.readLine());
-				
-				//close everything
-				peerSocket.close();
-				sendToPeer.close();
-				fromPeer.close();
-			}
-			catch (UnknownHostException e)
-			{
-				System.err.println("UnknownHostException: " + e.getMessage());
-				System.exit(1);
-			}
-			catch (SocketException e)
-			{
-				System.err.println("SocketException: " + e.getMessage());
-				System.exit(1);
-			}
-			catch (IOException e)
-			{
-				System.err.println("IOException: " + e.getMessage());
-				System.exit(1);
-			}
-		
-		
+		Tracker t = new Tracker(ti);
+		t.printResponseMap();
+		Peer test = new Peer("128.6.171.131", 61350, "-AZ5400-Z0HeJJzWqxUU");
+		test.getPeerResponse(ti, localID);
 	}
-	
-
-		
 }
