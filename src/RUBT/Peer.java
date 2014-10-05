@@ -1,9 +1,8 @@
 package RUBT;
 
-import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -15,7 +14,7 @@ import GivenTools.TorrentInfo;
 public class Peer {
 
 	private final static ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
-							19,'B','i','t','T','o','r','r','e','n','t',' ',
+							'B','i','t','T','o','r','r','e','n','t',' ',
 							'p','r','o','t','o','c','o','l'});
 	private String ip;
 	
@@ -33,12 +32,10 @@ public class Peer {
 	public String getPeerResponse(TorrentInfo ti, String localID)
 	{
 		byte[] handShake = new byte[68];
-		HANDSHAKE_HEADER.get(handShake, 0, HANDSHAKE_HEADER.remaining());
-		//ti.info_hash.get(handShake, 28, ti.info_hash.remaining());
-		
+		handShake[0] = 19;
+		HANDSHAKE_HEADER.get(handShake, 1, HANDSHAKE_HEADER.remaining());
 		System.arraycopy(ti.info_hash.array(), 0, handShake, 28, ti.info_hash.array().length);
-		
-		Util.addStringToByteArray(handShake, localID);
+		Util.addStringToByteArray(handShake, localID, 48);
 		
 		try {
 			System.out.println(new String(handShake, "UTF-8"));
@@ -50,16 +47,21 @@ public class Peer {
 		try
 		{
 			Socket peerSocket = new Socket(ip, port);
-			PrintWriter sendToPeer = new PrintWriter(peerSocket.getOutputStream(), true);
-			BufferedReader fromPeer = new BufferedReader(new InputStreamReader(peerSocket.getInputStream()));
+
+			DataOutputStream dos = new DataOutputStream(peerSocket.getOutputStream());
+			DataInputStream dis = new DataInputStream(peerSocket.getInputStream());
 			
-			sendToPeer.println(handShake);
-			System.out.println("peer: " + fromPeer.readLine());
+			dos.write(handShake);
+			dos.flush();
 			
+			byte[] handshakeResponse = new byte[68];
+			dis.readFully(handshakeResponse);
+			
+			System.out.println(new String(handshakeResponse, "UTF-8"));
 			//close everything
+			dos.close();
+			dis.close();
 			peerSocket.close();
-			sendToPeer.close();
-			fromPeer.close();
 		}
 		catch (UnknownHostException e)
 		{

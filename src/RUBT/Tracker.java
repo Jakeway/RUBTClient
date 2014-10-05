@@ -1,5 +1,6 @@
 package RUBT;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +24,9 @@ public class Tracker
 	
 	// decoded dictionary from Tracker response
 	private HashMap<ByteBuffer, Object> trackerResponseMap;
+	
+	// list of Peers retrieved from Tracker response
+	private ArrayList<Peer> peerList;
 	
 	// port to contact tracker with
 	private final String TRACKER_PORT = "6881";
@@ -56,14 +60,13 @@ public class Tracker
 		return this.trackerResponseMap;
 	}
 	
-	
-	
 	// returns the decoded list of peer hash maps from Tracker 
 	public ArrayList<HashMap<ByteBuffer, Object>> getPeerMaps()
 	{
 		return this.peerMaps;
 	}
 	
+	// prints the decoded response map from the Tracker
 	public void printResponseMap()
 	{
 		ToolKit.printMap(trackerResponseMap, 0);
@@ -99,14 +102,34 @@ public class Tracker
 		return peerMaps;
 	}
 	
+	public ArrayList<Peer> getPeerList()
+	{
+		return peerList;
+	}
+	
 	private void initPeerList()
 	{
+		ArrayList<Peer> peers = new ArrayList<Peer>();
 		for (HashMap<ByteBuffer, Object> peerMap : peerMaps)
 		{
-			ByteBuffer ip = (ByteBuffer) peerMap.get(KEY_IP);
-			
+			String ip = "";
+			String peerId = "";
+			ByteBuffer ipBuffer = (ByteBuffer) peerMap.get(KEY_IP);
+			ByteBuffer peerIdBuffer = (ByteBuffer) peerMap.get(KEY_PEER_ID);
+			try 
+			{
+				ip = new String(ipBuffer.array(), "UTF-8");
+				peerId = new String(peerIdBuffer.array(), "UTF-8");
+			} 
+			catch (UnsupportedEncodingException e)
+			{
+				e.printStackTrace();
+			}
 			int port = (Integer) peerMap.get(KEY_PORT);
+			Peer p = new Peer(ip, port, peerId);
+			peers.add(p);
 		}
+		this.peerList = peers;
 	}
 	
 	private void getResponse()
