@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Random;
 
 import GivenTools.BencodingException;
@@ -147,5 +148,16 @@ public class Util
 			array[i] = sBytes[c];
 			c++;
 		}
+	}
+	
+	public static Peer findPeer(ArrayList<Peer> peers)
+	{
+		for(Peer p : peers)
+		{
+			String pID = p.getPeerID().substring(0, 8);
+			if(pID.equals("-AZ5400-"))
+				return p;			
+		}
+		return null;
 	}
 }

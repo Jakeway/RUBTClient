@@ -44,10 +44,10 @@ public class Peer {
 		this.localID = localID;
 		this.peerID = peerID;
 		this.infoHash = infoHash;
-		initPeer();
+		//initPeer();
 	}
 	
-	private void initPeer()
+	public void initPeer()
 	{
 		generateHandshake();
 		getConnection();
@@ -72,8 +72,9 @@ public class Peer {
 			peerSocket = new Socket(ip, port);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+		} catch (SocketException e) {
+			e.printStackTrace();
 		} catch (IOException e) {
-			
 			e.printStackTrace();
 		}
 
@@ -116,6 +117,11 @@ public class Peer {
 		}
 	}
 	
+	public String getPeerID()
+	{
+		return this.peerID;
+	}
+	
 	public Boolean verifyResponse(byte[] peerHandshake)
 	{
 		
@@ -149,11 +155,14 @@ public class Peer {
 			
 			if (peerHandshake[i] != peerIdArray[i-48])
 			{
-				System.out.println("Response: " + peerHandshake[i]);
-				System.out.println("Handshake: " + peerIdArray[i-48]);
-				System.out.println(i);
+				return false;
 			}
 		}
 		return true;
+	}
+	
+	public void start()
+	{
+
 	}
 }

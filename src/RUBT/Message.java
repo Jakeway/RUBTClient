@@ -24,7 +24,23 @@ public class Message
 	
 	public static final int REQUEST_ID = 6;
 	
+	public static final int PIECE_ID = 7;
 	
+	public static final int KEEP_ALIVE_LENGTH_PREFIX = 0;
+	
+	public static final int CHOKE_LENGTH_PREFIX = 1;
+	
+	public static final int UNCHOKE_LENGTH_PREFIX = 1;
+	
+	public static final int INTERESTED_LENGTH_PREFIX = 1;
+	
+	public static final int UNINTERESTED_LENGTH_PREFIX = 1;
+	
+	public static final int HAVE_LENGTH_PREFIX = 5;
+	
+	public static final int REQUEST_LENGTH_PREFIX = 13;
+	
+	public static final long KEEP_ALIVE_TIMER = 120000;
 	
 	byte[] keepAlive;
 	byte[] choke;
@@ -39,6 +55,7 @@ public class Message
 
 	public void createMessage()
 	{
-				
+		
 	}
+	
 }

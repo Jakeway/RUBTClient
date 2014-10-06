@@ -160,6 +160,7 @@ public class Tracker
 		getResponse();
 		initResponseMap();
 		initPeerMaps();
+		initPeerList();
 	}
 	
 }
