@@ -20,16 +20,22 @@ public class Peer {
 	
 	private int port;
 	
+	private String localID;
+	
 	private String peerID;
 	
-	public Peer(String ip, int port, String peerID)
+	public Peer(String ip, int port, String peerID,
+				String localID)
 	{
 		this.ip = ip;
 		this.port = port;
+		this.localID = localID;
 		this.peerID = peerID;
 	}
 	
-	public String getPeerResponse(TorrentInfo ti, String localID)
+	
+	
+	public String getPeerResponse(TorrentInfo ti)
 	{
 		byte[] handShake = new byte[68];
 		handShake[0] = 19;

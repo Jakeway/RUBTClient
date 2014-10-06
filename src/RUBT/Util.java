@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Random;
 
 import GivenTools.BencodingException;
 import GivenTools.TorrentInfo;
@@ -120,6 +121,21 @@ public class Util
 		}
 		
 		return ti;
+	}
+	
+	public static String getRandomPeerId()
+	{
+	    Random rand = new Random();
+	    int min = 97;
+	    int max = 122;
+	    String peerId = "";
+	    for (int i = 0; i < 20; i++)
+	    {
+	    	int randInt = rand.nextInt((max - min) + 1) + min;
+	    	char c = (char) randInt;
+	    	peerId += c;
+	    }
+	    return peerId.toUpperCase();
 	}
 	
 	public static void addStringToByteArray(byte[] array, String s, int offset)

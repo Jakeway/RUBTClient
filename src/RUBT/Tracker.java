@@ -14,7 +14,7 @@ public class Tracker
 {
 	
 	TorrentInfo ti;
-	String peerId = "wearesogoingtofail!!";
+	String localId;
 	
 	// response from the Tracker after initial get request
 	private byte[] response;
@@ -43,12 +43,10 @@ public class Tracker
 	private final ByteBuffer KEY_PORT = ByteBuffer.wrap(new byte[] {
 			'p', 'o', 'r', 't' });
 
-	public Tracker(TorrentInfo ti)
+	public Tracker(TorrentInfo ti, String localId)
 	{
 		this.ti = ti;
-		// generate random peer_id
-		// this.peerId = Util.randomID();
-		
+		this.localId = localId;
 		initTracker();
 	}
 	
@@ -126,7 +124,7 @@ public class Tracker
 				e.printStackTrace();
 			}
 			int port = (Integer) peerMap.get(KEY_PORT);
-			Peer p = new Peer(ip, port, peerId);
+			Peer p = new Peer(ip, port, peerId, localId);
 			peers.add(p);
 		}
 		this.peerList = peers;
@@ -147,7 +145,7 @@ public class Tracker
 		}
 		String announceURL = ti.announce_url.toExternalForm();
 		String trackerURL = announceURL + "?info_hash=" + encodedHash
-				+ "&peer_id=" + this.peerId
+				+ "&peer_id=" + this.localId
 				+ "&left=" + length
 				+ "&port=" + TRACKER_PORT
 				+ "&downloaded=" + "0";
