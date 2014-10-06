@@ -24,66 +24,95 @@ public class Peer {
 	
 	private String peerID;
 	
+	private byte[] infoHash;
+	
+	private byte[] handshake;
+	
+	private byte[] response;
+	
+	private DataOutputStream outStream;
+	
+	private DataInputStream inStream;
+	
+	
+	
 	public Peer(String ip, int port, String peerID,
-				String localID)
+				String localID, byte[] infoHash)
 	{
 		this.ip = ip;
 		this.port = port;
 		this.localID = localID;
 		this.peerID = peerID;
+		this.infoHash = infoHash;
+		initPeer();
+	}
+	
+	private void initPeer()
+	{
+		generateHandshake();
+		getConnection();
+		this.getPeerResponse();
 	}
 	
 	
-	
-	public String getPeerResponse(TorrentInfo ti)
+	private void generateHandshake()
 	{
 		byte[] handShake = new byte[68];
 		handShake[0] = 19;
 		HANDSHAKE_HEADER.get(handShake, 1, HANDSHAKE_HEADER.remaining());
-		System.arraycopy(ti.info_hash.array(), 0, handShake, 28, ti.info_hash.array().length);
+		System.arraycopy(infoHash, 0, handShake, 28, infoHash.length);
 		Util.addStringToByteArray(handShake, localID, 48);
-		
+		this.handshake = handShake;
+	}
+	
+	private void getConnection()
+	{
+		Socket peerSocket = null;
 		try {
-			System.out.println(new String(handShake, "UTF-8"));
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			peerSocket = new Socket(ip, port);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			
+			e.printStackTrace();
 		}
-		
-		try
-		{
-			Socket peerSocket = new Socket(ip, port);
 
+		try {
 			DataOutputStream dos = new DataOutputStream(peerSocket.getOutputStream());
 			DataInputStream dis = new DataInputStream(peerSocket.getInputStream());
+			this.inStream = dis;
+			this.outStream = dos;
 			
-			dos.write(handShake);
-			dos.flush();
-			
-			byte[] handshakeResponse = new byte[68];
-			dis.readFully(handshakeResponse);
-			
-			System.out.println(new String(handshakeResponse, "UTF-8"));
-			//close everything
-			dos.close();
-			dis.close();
-			peerSocket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-		catch (UnknownHostException e)
+	}
+	
+	private void getPeerResponse()
+	{
+		byte[] handshakeResponse = new byte[68];
+		try 
 		{
-			System.err.println("UnknownHostException: " + e.getMessage());
-			System.exit(1);
+			outStream.write(handshake);
+			outStream.flush();
+			inStream.readFully(handshakeResponse);
 		}
-		catch (SocketException e)
+		catch (IOException e) 
 		{
-			System.err.println("SocketException: " + e.getMessage());
-			System.exit(1);
+			e.printStackTrace();
 		}
-		catch (IOException e)
+		this.response = handshakeResponse;
+	}
+	
+	public void printResponse()
+	{
+		try 
 		{
-			System.err.println("IOException: " + e.getMessage());
-			System.exit(1);
+			System.out.println(new String(response, "UTF-8"));
+		} 
+		catch (UnsupportedEncodingException e)
+		{
+			e.printStackTrace();
 		}
-		return null;
 	}
 }

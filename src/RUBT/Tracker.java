@@ -124,7 +124,7 @@ public class Tracker
 				e.printStackTrace();
 			}
 			int port = (Integer) peerMap.get(KEY_PORT);
-			Peer p = new Peer(ip, port, peerId, localId);
+			Peer p = new Peer(ip, port, peerId, localId, ti.info_hash.array());
 			peers.add(p);
 		}
 		this.peerList = peers;
