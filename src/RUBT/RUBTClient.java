@@ -44,5 +44,7 @@ public class RUBTClient
 				61350, "-AZ5400-Z0HeJJzWqxUU", localID, ti.info_hash.array());
 		
 		test.printResponse();
+		System.out.println(test.verifyResponse(test.response));
+		
 	}
 }

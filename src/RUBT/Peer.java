@@ -28,7 +28,7 @@ public class Peer {
 	
 	private byte[] handshake;
 	
-	private byte[] response;
+	byte[] response;
 	
 	private DataOutputStream outStream;
 	
@@ -116,26 +116,44 @@ public class Peer {
 		}
 	}
 	
-	public Boolean verifyResponse(byte[] handshakeResponse)
+	public Boolean verifyResponse(byte[] peerHandshake)
 	{
-		if(handshakeResponse == null)
+		
+		if(peerHandshake == null)
 		{
 			return false;
 		}
-		else if(handshakeResponse.length != 68)
+		else if(peerHandshake.length != 68)
 		{
 			return false;
 		}
-		else
-		{			
-			String handshakeResponseString = handshakeResponse.toString();
-			String infoHash = handshakeResponseString.substring(28, 48);
-			String peerID = handshakeResponseString.substring(48);
-			if(this.peerID.equals(peerID) && this.infoHash.equals(infoHash))
+		
+		// check bit torrent protocol and info hash
+		for (int i = 0; i < 48; i++)
+		{
+			// skip the 8 reserved bytes
+			if (i > 19 && i < 28)
 			{
-				return true;
+				continue;
 			}
-			return false;
+			if (peerHandshake[i] != handshake[i])
+			{
+				return false;
+			}
 		}
+	
+		// check the peerID
+		byte[] peerIdArray = this.peerID.getBytes();
+		for (int i = 48; i < peerHandshake.length; i++)
+		{
+			
+			if (peerHandshake[i] != peerIdArray[i-48])
+			{
+				System.out.println("Response: " + peerHandshake[i]);
+				System.out.println("Handshake: " + peerIdArray[i-48]);
+				System.out.println(i);
+			}
+		}
+		return true;
 	}
 }
