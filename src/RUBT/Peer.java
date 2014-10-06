@@ -115,4 +115,27 @@ public class Peer {
 			e.printStackTrace();
 		}
 	}
+	
+	public Boolean verifyResponse(byte[] handshakeResponse)
+	{
+		if(handshakeResponse == null)
+		{
+			return false;
+		}
+		else if(handshakeResponse.length != 68)
+		{
+			return false;
+		}
+		else
+		{			
+			String handshakeResponseString = handshakeResponse.toString();
+			String infoHash = handshakeResponseString.substring(28, 48);
+			String peerID = handshakeResponseString.substring(48);
+			if(this.peerID.equals(peerID) && this.infoHash.equals(infoHash))
+			{
+				return true;
+			}
+			return false;
+		}
+	}
 }
