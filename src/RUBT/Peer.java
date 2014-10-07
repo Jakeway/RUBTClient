@@ -30,6 +30,8 @@ public class Peer {
 	
 	byte[] response;
 	
+	private Socket s;
+	
 	private DataOutputStream outStream;
 	
 	private DataInputStream inStream;
@@ -44,15 +46,8 @@ public class Peer {
 		this.localID = localID;
 		this.peerID = peerID;
 		this.infoHash = infoHash;
-		//initPeer();
 	}
 	
-	public void initPeer()
-	{
-		generateHandshake();
-		getConnection();
-		this.getPeerResponse();
-	}
 	
 	
 	private void generateHandshake()
@@ -70,6 +65,7 @@ public class Peer {
 		Socket peerSocket = null;
 		try {
 			peerSocket = new Socket(ip, port);
+			this.s = peerSocket;
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (SocketException e) {
@@ -85,6 +81,18 @@ public class Peer {
 			this.outStream = dos;
 			
 		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void closeConnection()
+	{
+		try {
+			this.inStream.close();
+			this.outStream.close();
+			this.s.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -163,6 +171,10 @@ public class Peer {
 	
 	public void start()
 	{
-
+		generateHandshake();
+		getConnection();
+		getPeerResponse();
+		Message.send(Message.INTERESTED_MSG, outStream);
+		
 	}
 }

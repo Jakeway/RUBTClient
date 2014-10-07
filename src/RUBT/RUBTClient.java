@@ -14,7 +14,6 @@ public class RUBTClient
 	public static void main(String[] args)
 	{		
 		TorrentInfo ti = null;
-		String announceURL = "";
 		
 		if(args.length > 2 || args.length <= 1)
 		{
@@ -39,15 +38,22 @@ public class RUBTClient
 		String localID = Util.getRandomPeerId();
 		
 		Tracker t = new Tracker(ti, localID);
-		
-		Peer test = Util.findPeer(t.getPeerList());
 		t.printResponseMap();
+		Peer test = Util.findPeer(t.getPeerList());
+		//t.printResponseMap();
 		//Peer test = new Peer("128.6.171.131",
 		//		61350, "-AZ5400-Z0HeJJzWqxUU", localID, ti.info_hash.array());
-		test.initPeer();
-		test.printResponse();
-		System.out.println(test.verifyResponse(test.response));
+	
+		test.start();
 		if(test.verifyResponse(test.response))
-			test.start();
+		{
+			test.printResponse();
+			System.out.println(test.verifyResponse(test.response));
+		}
+		else
+		{
+			System.out.println("false");
+		}
+			
 	}
 }

@@ -1,61 +1,82 @@
 package RUBT;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 public class Message 
 {
 	
-	// 4 bytes
-	byte[] lengthPrefix;
-	
-	byte id;
-	
-	// message dependent
-	byte[] payload;
-	
-	
-	public static final int CHOKE_ID = 0;
-	
-	public static final int UNCHOKE_ID = 1;
-	
-	public static final int INTERESTED_ID = 2;
-	
-	public static final int UNINTERESTED_ID = 3;
-	
-	public static final int HAVE_ID = 4;
-	
-	public static final int REQUEST_ID = 6;
-	
-	public static final int PIECE_ID = 7;
-	
-	public static final int KEEP_ALIVE_LENGTH_PREFIX = 0;
-	
-	public static final int CHOKE_LENGTH_PREFIX = 1;
-	
-	public static final int UNCHOKE_LENGTH_PREFIX = 1;
-	
-	public static final int INTERESTED_LENGTH_PREFIX = 1;
-	
-	public static final int UNINTERESTED_LENGTH_PREFIX = 1;
-	
-	public static final int HAVE_LENGTH_PREFIX = 5;
-	
-	public static final int REQUEST_LENGTH_PREFIX = 13;
-	
-	public static final long KEEP_ALIVE_TIMER = 120000;
-	
-	byte[] keepAlive;
-	byte[] choke;
-	byte[] unchoke;
-	byte[] interested;
-	byte[] uninterested;
-	byte[] have;
-	byte[] bitfield;
-	byte[] request;
-	byte[] piece;
-	byte[] cancel;
+	private int length;
+	private byte id;
 
-	public void createMessage()
+
+	private static final byte CHOKE_ID = 0;
+	
+	private static final byte UNCHOKE_ID = 1;
+	
+	private static final byte INTERESTED_ID = 2;
+	
+	private static final byte UNINTERESTED_ID = 3;
+	
+	private static final byte HAVE_ID = 4;
+	
+	private static final byte REQUEST_ID = 6;
+	
+	private static final byte PIECE_ID = 7;
+	
+	// not an actual standard, doesn't get used.
+	// KEEP_ALIVE Messages don't have an ID.
+	private static final byte KEEP_ALIVE_ID = 8;
+	
+	private static final long KEEP_ALIVE_TIMER = 120000;
+	
+	// The following are Messages used to communicate with the Peer
+	
+	public static final Message INTERESTED_MSG = 
+			new Message(1, INTERESTED_ID); 
+	
+	public static final Message KEEP_ALIVE_MSG =
+			new Message(0, KEEP_ALIVE_ID);
+	
+	public static final Message CHOKE_MSG = 
+			new Message(1, CHOKE_ID);
+
+	public static final Message UNCHOKE_MSG = 
+			new Message(1, UNCHOKE_ID);
+
+	public static final Message UNINTERESTED_MSG = 
+			new Message(1, UNINTERESTED_ID);
+	
+
+	private Message(int lenPrefix, byte ID)
+	{
+		this.length = lenPrefix;
+		this.id = ID;
+	}
+	
+	public static void send(Message m, DataOutputStream out)
+	{
+		try 
+		{
+			// write the Message length prefix
+			out.writeInt(m.length);
+			// don't need to write the Message ID of the keep alive message
+			if (m.id != KEEP_ALIVE_ID)
+			{
+				out.writeByte(m.id);
+			}
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void receive(Message m, DataInputStream in)
 	{
 		
 	}
+	
 	
 }

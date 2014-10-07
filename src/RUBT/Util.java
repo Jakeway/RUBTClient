@@ -150,6 +150,7 @@ public class Util
 		}
 	}
 	
+	// method which finds us the Rutgers peer to use
 	public static Peer findPeer(ArrayList<Peer> peers)
 	{
 		for(Peer p : peers)
