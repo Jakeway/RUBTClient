@@ -73,9 +73,64 @@ public class Message
 		}
 	}
 	
-	public static void receive(Message m, DataInputStream in)
+	public String toString()
 	{
 		
+		switch(this.id)
+		{
+			case CHOKE_ID:
+				return "CHOKE_MSG";
+			case UNCHOKE_ID:
+				return "UNCHOKE_MSG";
+			case INTERESTED_ID:
+				return "INTERESTED_MSG";
+			case UNINTERESTED_ID:
+				return "UNINTERESTED_MSG";
+			default:
+				return "Unknown Message";
+		}
+	}
+	
+	public static Message receive(DataInputStream in)
+	{
+		try
+		{
+			int length = in.readInt();
+			if(length == 0)
+				return KEEP_ALIVE_MSG;
+			else if(length == 1)
+			{
+				byte ID = in.readByte();
+				switch(ID)
+				{
+					case CHOKE_ID:
+						return CHOKE_MSG;
+					case UNCHOKE_ID:
+						return UNCHOKE_MSG;
+					case INTERESTED_ID:
+						return INTERESTED_MSG;
+					case UNINTERESTED_ID:
+						return UNINTERESTED_MSG;
+				}
+			}
+			else if(length == 5)
+			{
+				return null;
+			}
+			else if(length == 13)
+			{
+				return null;
+			}
+			else if(length == 9)
+			{
+				return null;
+			}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	

@@ -188,6 +188,7 @@ public class Peer {
 		{
 			System.err.println("Failed to validate handshake from remote peer after "
 					+ VALIDATION_ATTEMPTS + " times. Try again.");
+			System.exit(1);
 		}
 	}
 	public void start()
@@ -196,6 +197,7 @@ public class Peer {
 		getConnection();
 		validateHandshake();
 		Message.send(Message.INTERESTED_MSG, outStream);
-		
+		//Message m = Message.receive(inStream);
+		//System.out.println("Received message from peer: " + m.toString());
 	}
 }
