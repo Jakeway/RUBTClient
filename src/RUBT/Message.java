@@ -10,26 +10,29 @@ public class Message
 	private int length;
 	private byte id;
 
-
-	private static final byte CHOKE_ID = 0;
+	public static final byte CHOKE_ID = 0;
 	
-	private static final byte UNCHOKE_ID = 1;
+	public static final byte UNCHOKE_ID = 1;
 	
-	private static final byte INTERESTED_ID = 2;
+	public static final byte INTERESTED_ID = 2;
 	
-	private static final byte UNINTERESTED_ID = 3;
+	public static final byte UNINTERESTED_ID = 3;
 	
-	private static final byte HAVE_ID = 4;
+	public static final byte HAVE_ID = 4;
 	
-	private static final byte REQUEST_ID = 6;
+	public static final byte BITFIELD_ID = 5;
 	
-	private static final byte PIECE_ID = 7;
+	public static final byte REQUEST_ID = 6;
+	
+	public static final byte PIECE_ID = 7;
+	
+	public static final byte CANCEL_ID = 8;
 	
 	// not an actual standard, doesn't get used.
 	// KEEP_ALIVE Messages don't have an ID.
-	private static final byte KEEP_ALIVE_ID = 8;
+	public static final byte KEEP_ALIVE_ID = 8;
 	
-	private static final long KEEP_ALIVE_TIMER = 120000;
+	public static final long KEEP_ALIVE_TIMER = 120000;
 	
 	// The following are Messages used to communicate with the Peer
 	
@@ -49,7 +52,7 @@ public class Message
 			new Message(1, UNINTERESTED_ID);
 	
 
-	private Message(int lenPrefix, byte ID)
+	public Message(int lenPrefix, byte ID)
 	{
 		this.length = lenPrefix;
 		this.id = ID;
@@ -99,12 +102,16 @@ public class Message
 			byte id = in.readByte();
 			System.out.println("length of message: " + length);
 			System.out.println("id of message: " + id);
+			if(length < 0)
+			{
+				System.err.println("Received a corrupt message: " + length);
+				System.exit(1);
+			}
 			if(length == 0)
 				return KEEP_ALIVE_MSG;
 			else if(length == 1)
 			{
-				byte ID = in.readByte();
-				switch(ID)
+				switch(id)
 				{
 					case CHOKE_ID:
 						return CHOKE_MSG;
@@ -115,13 +122,34 @@ public class Message
 					case UNINTERESTED_ID:
 						return UNINTERESTED_MSG;
 					default:
-						return null;
+						System.err.println("Received unrecognized message with length 1. ID: " + id);
 				}
 			}
-			else if(length == 5)
+			else if(length == 5 && id == HAVE_ID)
 			{
 				System.out.println("Have_Msg");
 				return null;
+			}
+			else if(length == 13 && id == REQUEST_ID)
+			{
+				System.out.println("Request_msg");
+				return null;
+			}
+			else if(length >= 9 && id == PIECE_ID)
+			{
+				System.out.println("Piece_Msg");
+				return null;
+			}
+			else if(length == 13 && id == CANCEL_ID)
+			{
+				System.out.println("Cancel_Msg");
+				return null;
+			}
+			else if(id == BITFIELD_ID)
+			{
+				byte[] bitfield = new byte[length - 1];
+				in.readFully(bitfield);
+				return new BitfieldMessage(bitfield);
 			}
 		}
 		catch (IOException e)

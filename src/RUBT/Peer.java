@@ -40,6 +40,8 @@ public class Peer {
 	
 	private final int VALIDATION_ATTEMPTS = 1;
 	
+	private boolean running = true;
+	
 	public Peer(String ip, int port, String peerID,
 				String localID, byte[] infoHash)
 	{
@@ -189,6 +191,7 @@ public class Peer {
 			System.err.println("Failed to validate handshake from remote peer after "
 					+ VALIDATION_ATTEMPTS + " times. Try again.");
 			System.exit(1);
+			this.running = false;
 		}
 	}
 	public void start()
@@ -199,8 +202,14 @@ public class Peer {
 		
 		Message m = Message.receive(inStream);
 		Message.send(Message.INTERESTED_MSG, outStream);
-		m = Message.receive(inStream);
-		if(m != null)
-			System.out.println("Received message from peer: " + m.toString());
+		while(running)
+		{
+			m = Message.receive(inStream);
+			if(m != null)
+			{
+				System.out.println("Received message from peer: " + m.toString());
+				this.running = false;
+			}
+		}
 	}
 }
