@@ -36,7 +36,9 @@ public class Peer {
 	
 	private DataInputStream inStream;
 	
+	private boolean verified = false;
 	
+	private final int VALIDATION_ATTEMPTS = 1;
 	
 	public Peer(String ip, int port, String peerID,
 				String localID, byte[] infoHash)
@@ -130,7 +132,7 @@ public class Peer {
 		return this.peerID;
 	}
 	
-	public Boolean verifyResponse(byte[] peerHandshake)
+	private Boolean verifyResponse(byte[] peerHandshake)
 	{
 		
 		if(peerHandshake == null)
@@ -168,12 +170,31 @@ public class Peer {
 		}
 		return true;
 	}
-	
+	private void validateHandshake()
+	{
+		for (int i = 1; i <= VALIDATION_ATTEMPTS; i++)
+		{
+			System.out.println("Attempting to validate peer response - Attempt: " + i);
+			getPeerResponse();
+			// might be able to make this method not take in any params
+			if (verifyResponse(response))
+			{
+				verified = true;
+				System.out.println("Verified handshake.");
+				break;
+			}
+		}
+		if (!(verified))
+		{
+			System.err.println("Failed to validate handshake from remote peer after "
+					+ VALIDATION_ATTEMPTS + " times. Try again.");
+		}
+	}
 	public void start()
 	{
 		generateHandshake();
 		getConnection();
-		getPeerResponse();
+		validateHandshake();
 		Message.send(Message.INTERESTED_MSG, outStream);
 		
 	}

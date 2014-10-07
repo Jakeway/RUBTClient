@@ -38,22 +38,13 @@ public class RUBTClient
 		String localID = Util.getRandomPeerId();
 		
 		Tracker t = new Tracker(ti, localID);
-		t.printResponseMap();
+		//t.printResponseMap();
 		Peer test = Util.findPeer(t.getPeerList());
 		//t.printResponseMap();
 		//Peer test = new Peer("128.6.171.131",
 		//		61350, "-AZ5400-Z0HeJJzWqxUU", localID, ti.info_hash.array());
 	
 		test.start();
-		if(test.verifyResponse(test.response))
-		{
-			test.printResponse();
-			System.out.println(test.verifyResponse(test.response));
-		}
-		else
-		{
-			System.out.println("false");
-		}
 			
 	}
 }
