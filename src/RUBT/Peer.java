@@ -196,8 +196,11 @@ public class Peer {
 		generateHandshake();
 		getConnection();
 		validateHandshake();
+		
+		Message m = Message.receive(inStream);
 		Message.send(Message.INTERESTED_MSG, outStream);
-		//Message m = Message.receive(inStream);
-		//System.out.println("Received message from peer: " + m.toString());
+		m = Message.receive(inStream);
+		if(m != null)
+			System.out.println("Received message from peer: " + m.toString());
 	}
 }

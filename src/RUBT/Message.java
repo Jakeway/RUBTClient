@@ -96,6 +96,9 @@ public class Message
 		try
 		{
 			int length = in.readInt();
+			byte id = in.readByte();
+			System.out.println("length of message: " + length);
+			System.out.println("id of message: " + id);
 			if(length == 0)
 				return KEEP_ALIVE_MSG;
 			else if(length == 1)
@@ -111,18 +114,13 @@ public class Message
 						return INTERESTED_MSG;
 					case UNINTERESTED_ID:
 						return UNINTERESTED_MSG;
+					default:
+						return null;
 				}
 			}
 			else if(length == 5)
 			{
-				return null;
-			}
-			else if(length == 13)
-			{
-				return null;
-			}
-			else if(length == 9)
-			{
+				System.out.println("Have_Msg");
 				return null;
 			}
 		}
