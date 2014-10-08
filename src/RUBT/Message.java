@@ -96,6 +96,7 @@ public class Message
 	
 	public static Message receive(DataInputStream in)
 	{
+		System.out.println("Attempting to retrieve message.");
 		try
 		{
 			int length = in.readInt();
@@ -107,7 +108,7 @@ public class Message
 				System.err.println("Received a corrupt message: " + length);
 				System.exit(1);
 			}
-			if(length == 0)
+			if(id == KEEP_ALIVE_ID)
 				return KEEP_ALIVE_MSG;
 			else if(length == 1)
 			{

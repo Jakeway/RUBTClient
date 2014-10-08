@@ -36,7 +36,6 @@ public class RUBTClient
 		ti = Util.getTorrentInfo(torrentFile);
 		
 		String localID = Util.getRandomPeerId();
-		
 		Tracker t = new Tracker(ti, localID);
 		//t.printResponseMap();
 		Peer test = Util.findPeer(t.getPeerList());
