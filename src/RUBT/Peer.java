@@ -2,6 +2,9 @@ package RUBT;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
@@ -9,9 +12,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
-import GivenTools.TorrentInfo;
-
-public class Peer {
+public class Peer extends Thread {
 
 	private final static ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
 							'B','i','t','T','o','r','r','e','n','t',' ',
@@ -28,6 +29,8 @@ public class Peer {
 	
 	private ByteBuffer[] piece_hashes;
 	
+	private int pieceLength;
+	
 	private byte[] handshake;
 	
 	byte[] response;
@@ -40,15 +43,18 @@ public class Peer {
 	
 	private boolean verified = false;
 	
+	private RUBTClient rubt;
+	
 	private final int VALIDATION_ATTEMPTS = 1;
 	
 	private boolean running = true;
 	
-	private static final int BLOCK_LENGTH = 16348;
+	
+
 	
 	public Peer(String ip, int port, String peerID,
 				String localID, byte[] infoHash,
-				ByteBuffer[] piece_hashes)
+				ByteBuffer[] piece_hashes, int piece_length)
 	{
 		this.ip = ip;
 		this.port = port;
@@ -56,6 +62,7 @@ public class Peer {
 		this.peerID = peerID;
 		this.infoHash = infoHash;
 		this.piece_hashes = piece_hashes;
+		this.pieceLength = piece_length;
 	}
 	
 	
@@ -200,46 +207,98 @@ public class Peer {
 			this.running = false;
 		}
 	}
-	public void start()
+	
+	
+	
+	
+	public void run(RUBTClient rubt)
 	{
+		this.rubt = rubt;
 		generateHandshake();
 		getConnection();
 		validateHandshake();
 		
-		Message m = Message.receive(inStream);
+		// first message after handshake is bitfield message
+		BitfieldMessage bm = (BitfieldMessage) Message.receive(inStream);
+		int numPieces = bm.getBitfieldLength();
+		
 		Message.send(Message.INTERESTED_MSG, outStream);
 		
+		File f = new File("test");
+		FileOutputStream fos = null;
+		try {
+			fos = new FileOutputStream(f);
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		// this shouldn't be a trait of Message, should be trait of a peer
 		Message.LAST_MESSAGE_TIME = System.currentTimeMillis();
 		while(running)
 		{
-			m = Message.receive(inStream);
+			Message m = Message.receive(inStream);
 			if(m.toString().equals("UNCHOKE_MSG"))
 			{
-				RequestMessage rm = new RequestMessage(0, 0, BLOCK_LENGTH);
-				RequestMessage.send(rm, outStream);
-				m = Message.receive(inStream);
-			}
-			if(m != null)
-			{
-				// should be piece message at this point
-				// note: should write an equals method for each message type
-				System.out.println("Received message from peer: " + m.toString());
-				if (m.getID() == PieceMessage.PIECE_ID)
+				
+				for (int i = 0; i < 1; i++)
 				{
-					PieceMessage pm = (PieceMessage) m;
-					if (Util.verifyHash
-							(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+					for (int j = 0; j < 8; j++)
 					{
-						System.out.println("Verified piece message");
-					}
-					else
-					{
-						System.out.println("Unable to verify piece message");
+						System.out.println(i * 8 + j);
+						System.out.println((i * 8 * pieceLength) + j * pieceLength);
+						try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					
+						RequestMessage rm = new RequestMessage(i, j, pieceLength);
+						RequestMessage.send(rm, outStream);
+						try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						m = Message.receive(inStream);
+				
+						if(m != null)
+						{
+							// should be piece message at this point
+							// note: should write an equals method for each message type
+							System.out.println("Received message from peer: " + m.toString());
+							
+							if (m.getID() == PieceMessage.PIECE_ID)
+							{
+								PieceMessage pm = (PieceMessage) m;
+								if (Util.verifyHash
+										(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+								{
+									System.out.println("Verified piece message");
+									
+								//	System.arraycopy(pm.getBlock(), 0, rubt.downloaded, ((i * 8 * pieceLength) + j * pieceLength), pieceLength);
+									try {
+										fos.write(pm.getBlock());
+										fos.flush();
+									} catch (IOException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+									HaveMessage hm = new HaveMessage(i * 8 + j);
+									HaveMessage.send(hm, outStream);
+								}
+								else
+								{
+									System.out.println("Unable to verify piece message");
+								}
+							}
+							this.running = false;
+						}
 					}
 				}
-				this.running = false;
 			}
 		}
 	}
 }
+

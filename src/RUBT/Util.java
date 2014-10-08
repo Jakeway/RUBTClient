@@ -166,8 +166,6 @@ public class Util
 	}
 	public static boolean verifyHash(byte[] input, byte[] hash)
 	{
-		System.out.println("Input length: " + input.length);
-		System.out.println("Hash length: " + hash.length);
 		MessageDigest sha1 = null;
 		try 
 		{
@@ -178,7 +176,6 @@ public class Util
 			e.printStackTrace();
 		}
 		byte[] hashed_input = sha1.digest(input);
-		System.out.println("Hashed input length: " + hashed_input.length);
 		if (Arrays.equals(hashed_input, hash))
 		{
 			return true;

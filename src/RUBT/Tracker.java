@@ -125,7 +125,7 @@ public class Tracker
 				e.printStackTrace();
 			}
 			int port = (Integer) peerMap.get(KEY_PORT);
-			Peer p = new Peer(ip, port, peerId, localId, ti.info_hash.array(), ti.piece_hashes);
+			Peer p = new Peer(ip, port, peerId, localId, ti.info_hash.array(), ti.piece_hashes, ti.piece_length);
 			peers.add(p);
 		}
 		this.peerList = peers;
@@ -149,7 +149,8 @@ public class Tracker
 				+ "&peer_id=" + this.localId
 				+ "&left=" + length
 				+ "&port=" + TRACKER_PORT
-				+ "&downloaded=" + "0";
+				+ "&downloaded=" + "0"
+				+ "&event=" + "started";
 		
 		byte[] trackerResponse = Util.sendGetRequest(trackerURL).getBytes();
 		this.response = trackerResponse;
@@ -163,6 +164,7 @@ public class Tracker
 		initPeerMaps();
 		initPeerList();
 	}
+	
 	
 }
 	

@@ -7,6 +7,8 @@ public class BitfieldMessage extends Message
 	private byte[] bitfield;
 	
 	public static final byte BITFIELD_ID = 5;
+	
+	
 
 	public BitfieldMessage(byte[] bitfield)
 	{
@@ -34,5 +36,10 @@ public class BitfieldMessage extends Message
 			}
 		}
 		}
+	}
+	
+	public int getBitfieldLength()
+	{
+		return bitfield.length;
 	}
 }

@@ -11,8 +11,17 @@ import GivenTools.*;
 
 public class RUBTClient 
 {
+	
+	byte[] downloaded;
+	
+	public RUBTClient(int fileLength)
+	{
+		downloaded = new byte[fileLength];
+	}
+	
 	public static void main(String[] args)
-	{		
+	{	
+		
 		TorrentInfo ti = null;
 		
 		if(args.length > 2 || args.length <= 1)
@@ -35,14 +44,16 @@ public class RUBTClient
 		
 		ti = Util.getTorrentInfo(torrentFile);
 		
+		RUBTClient rubt = new RUBTClient(ti.file_length);
 		
 		String localID = Util.getRandomPeerId();
 		Tracker t = new Tracker(ti, localID);
+		t.printResponseMap();
+		Peer rutgersPeer = Util.findPeer(t.getPeerList());
 		//t.printResponseMap();
-		Peer test = Util.findPeer(t.getPeerList());
-		//t.printResponseMap();
-	
-		test.start();
+		
+		
+		rutgersPeer.run(rubt);
 			
 	}
 }

@@ -1,8 +1,11 @@
 package RUBT;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 public class HaveMessage extends Message {
 
-	public int piece;
+	private int piece;
 	
 	public static final byte HAVE_ID = 4;
 	
@@ -12,6 +15,21 @@ public class HaveMessage extends Message {
 	{
 		super(HAVE_LENGTH, HAVE_ID);
 		this.piece = piece;
+	}
+	
+	public static void send(Message m, DataOutputStream out)
+	{
+		Message.send(m, out);
+		HaveMessage hm = (HaveMessage) m;
+		try
+		{
+			out.writeInt(hm.piece);
+			out.flush();
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
 	}
 
 }
