@@ -128,18 +128,24 @@ public class Message
 			}
 			else if(length == 5 && id == HAVE_ID)
 			{
-				System.out.println("Have_Msg");
-				return null;
+				int piece = in.readInt();
+				return new HaveMessage(piece);
 			}
 			else if(length == 13 && id == REQUEST_ID)
 			{
-				System.out.println("Request_msg");
-				return null;
+				int piece = in.readInt();
+				int byteOffset = in.readInt();
+				int byteLength = in.readInt();
+				return new RequestMessage(piece, byteOffset, byteLength);
 			}
 			else if(length >= 9 && id == PIECE_ID)
 			{
-				System.out.println("Piece_Msg");
-				return null;
+				int piece = in.readInt();
+				int byteOffset = in.readInt();
+				int data = length - 9;
+				byte[] block = new byte[data];
+				in.readFully(block);
+				return new PieceMessage(piece, byteOffset, block);
 			}
 			else if(length == 13 && id == CANCEL_ID)
 			{
