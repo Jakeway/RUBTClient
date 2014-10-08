@@ -100,13 +100,13 @@ public class Message
 	
 	public static Message receive(DataInputStream in)
 	{
-		System.out.println("Attempting to retrieve message.");
+	//	System.out.println("Attempting to retrieve message.");
 		try
 		{
 			int length = in.readInt();
 			byte id = in.readByte();
-			System.out.println("length of message: " + length);
-			System.out.println("id of message: " + id);
+			//System.out.println("length of message: " + length);
+			//System.out.println("id of message: " + id);
 			if(length < 0)
 			{
 				System.err.println("Received a corrupt message: " + length);

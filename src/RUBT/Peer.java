@@ -223,6 +223,7 @@ public class Peer
 		// first message after handshake is bitfield message
 		BitfieldMessage bm = (BitfieldMessage) Message.receive(inStream);
 		
+		System.out.println("Sending interested message");
 		Message.send(Message.INTERESTED_MSG, outStream);
 		
 		
@@ -238,14 +239,15 @@ public class Peer
 			Message m = Message.receive(inStream);
 			if(m.toString().equals("UNCHOKE_MSG"))
 			{
-				
+				System.out.println("Received unchoked message");
+				System.out.println("Starting download... Please wait patiently.");
 				for (int i = 0; i < this.piece_hashes.length-1; i++)
 				{
 					
-						System.out.println(i);
+						//System.out.println(i);
 					//	System.out.println((i * 8 * pieceLength) + j * pieceLength);
 	
-					
+						
 						RequestMessage rm = new RequestMessage(i, 0, pieceLength);
 						RequestMessage.send(rm, outStream);
 
@@ -255,7 +257,7 @@ public class Peer
 						{
 							// should be piece message at this point
 							// note: should write an equals method for each message type
-							System.out.println("Received message from peer: " + m.toString());
+					//		System.out.println("Received message from peer: " + m.toString());
 							
 							if (m.getID() == PieceMessage.PIECE_ID)
 							{
@@ -263,7 +265,7 @@ public class Peer
 								if (Util.verifyHash
 										(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
 								{
-									System.out.println("Verified piece message");
+								//	System.out.println("Verified piece message");
 
 								//	System.arraycopy(pm.getBlock(), 0, rubt.downloaded, ((i * 8 * pieceLength) + j * pieceLength), pieceLength);
 									try {
@@ -278,7 +280,8 @@ public class Peer
 								}
 								else
 								{
-									System.out.println("Unable to verify piece message");
+									System.err.println("Unable to verify piece message");
+									System.exit(1);
 								}
 							}
 						}
@@ -293,7 +296,7 @@ public class Peer
 						if (Util.verifyHash
 								(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
 						{
-							System.out.println("Verified piece message");
+						//	System.out.println("Verified piece message");
 
 						//	System.arraycopy(pm.getBlock(), 0, rubt.downloaded, ((i * 8 * pieceLength) + j * pieceLength), pieceLength);
 							try {
@@ -308,7 +311,8 @@ public class Peer
 						}
 						else
 						{
-							System.out.println("Unable to verify piece message");
+							System.err.println("Unable to verify piece message");
+							System.exit(1);
 						}
 					}
 				}

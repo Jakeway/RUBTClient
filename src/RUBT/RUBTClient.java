@@ -50,7 +50,7 @@ public class RUBTClient
 		
 		String localID = Util.getRandomPeerId();
 		Tracker t = new Tracker(ti, localID);
-		t.printResponseMap();
+		//t.printResponseMap();
 		Peer rutgersPeer = Util.findPeer(t.getPeerList());
 		//t.printResponseMap();
 		
