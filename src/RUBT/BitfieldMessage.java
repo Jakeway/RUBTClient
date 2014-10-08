@@ -3,9 +3,10 @@ package RUBT;
 public class BitfieldMessage extends Message 
 {
 
+
 	private byte[] bitfield;
 	
-	
+
 
 	public BitfieldMessage(byte[] bitfield)
 	{
