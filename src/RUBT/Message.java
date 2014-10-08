@@ -26,7 +26,7 @@ public class Message
 	
 	public static final long KEEP_ALIVE_TIMER = 120000;
 	
-	public static long LAST_MESSAGE = 0;
+	public static long LAST_MESSAGE_TIME = 0;
 	
 	// The following are Messages used to communicate with the Peer
 	
@@ -83,6 +83,14 @@ public class Message
 				return "INTERESTED_MSG";
 			case UNINTERESTED_ID:
 				return "UNINTERESTED_MSG";
+			case HaveMessage.HAVE_ID:
+				return "HAVE_MSG";
+			case RequestMessage.REQUEST_ID:
+				return "REQUEST_MSG";
+			case BitfieldMessage.BITFIELD_ID:
+				return "BITFIELD_MSG";
+			case PieceMessage.PIECE_ID:
+				return "PIECE_MSG";
 			default:
 				return "Unknown Message";
 		}
