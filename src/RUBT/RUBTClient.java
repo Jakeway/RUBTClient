@@ -13,10 +13,12 @@ public class RUBTClient
 {
 	
 	byte[] downloaded;
+	File f;
 	
-	public RUBTClient(int fileLength)
+	public RUBTClient(int fileLength, File saveFile)
 	{
 		downloaded = new byte[fileLength];
+		f = saveFile;
 	}
 	
 	public static void main(String[] args)
@@ -44,7 +46,7 @@ public class RUBTClient
 		
 		ti = Util.getTorrentInfo(torrentFile);
 		
-		RUBTClient rubt = new RUBTClient(ti.file_length);
+		RUBTClient rubt = new RUBTClient(ti.file_length, destFile);
 		
 		String localID = Util.getRandomPeerId();
 		Tracker t = new Tracker(ti, localID);

@@ -2,7 +2,6 @@ package RUBT;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,7 +13,8 @@ import java.nio.ByteBuffer;
 
 import GivenTools.TorrentInfo;
 
-public class Peer extends Thread {
+public class Peer 
+{
 
 	private final static ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
 							'B','i','t','T','o','r','r','e','n','t',' ',
@@ -225,10 +225,10 @@ public class Peer extends Thread {
 		
 		Message.send(Message.INTERESTED_MSG, outStream);
 		
-		File f = new File("test");
+		
 		FileOutputStream fos = null;
 		try {
-			fos = new FileOutputStream(f);
+			fos = new FileOutputStream(rubt.f);
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -319,6 +319,8 @@ public class Peer extends Thread {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		closeConnection();
 	}
 }
 
