@@ -1,21 +1,44 @@
 package RUBT;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 public class RequestMessage extends Message {
 
-	private int piece;
+	private int pieceIndex;
 	private int byteOffset;
-	private int byteLength;
+	private int blockLength;
 	
 	public static final byte REQUEST_ID = 6;
 	
 	public static final int REQUEST_LENGTH = 13;
 
-	public RequestMessage(int piece, int byteOffset, int byteLength)
+	public RequestMessage(int pieceIndex, int byteOffset, int blockLength)
 	{
 		super(REQUEST_LENGTH, REQUEST_ID);
-		this.piece = piece;
+		this.pieceIndex = pieceIndex;
 		this.byteOffset = byteOffset;
-		this.byteLength = byteLength;
+		this.blockLength = blockLength;
+		
 	}
+	
+	public static void send(Message m, DataOutputStream out)
+	{
+		Message.send(m, out);
+		RequestMessage rm = (RequestMessage) m;
+		try
+		{
+			out.writeInt(rm.pieceIndex);
+			out.writeInt(rm.byteOffset);
+			out.writeInt(rm.blockLength);
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+
+
+	
 
 }

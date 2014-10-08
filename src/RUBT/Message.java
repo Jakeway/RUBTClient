@@ -168,5 +168,10 @@ public class Message
 		return null;
 	}
 	
+	public byte getID()
+	{
+		return this.id;
+	}
+	
 	
 }

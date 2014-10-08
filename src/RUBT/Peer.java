@@ -26,6 +26,8 @@ public class Peer {
 	
 	private byte[] infoHash;
 	
+	private ByteBuffer[] piece_hashes;
+	
 	private byte[] handshake;
 	
 	byte[] response;
@@ -45,13 +47,15 @@ public class Peer {
 	private static final int BLOCK_LENGTH = 16348;
 	
 	public Peer(String ip, int port, String peerID,
-				String localID, byte[] infoHash)
+				String localID, byte[] infoHash,
+				ByteBuffer[] piece_hashes)
 	{
 		this.ip = ip;
 		this.port = port;
 		this.localID = localID;
 		this.peerID = peerID;
 		this.infoHash = infoHash;
+		this.piece_hashes = piece_hashes;
 	}
 	
 	
@@ -204,18 +208,36 @@ public class Peer {
 		
 		Message m = Message.receive(inStream);
 		Message.send(Message.INTERESTED_MSG, outStream);
-		Message.LAST_MESSAGE = System.currentTimeMillis();
+		
+		// this shouldn't be a trait of Message, should be trait of a peer
+		Message.LAST_MESSAGE_TIME = System.currentTimeMillis();
 		while(running)
 		{
 			m = Message.receive(inStream);
-			/*if(m.toString().equals("UNCHOKE_MSG"))
+			if(m.toString().equals("UNCHOKE_MSG"))
 			{
-				Message.send(new RequestMessage(RequestMessage.REQUEST_LENGTH, RequestMessage.REQUEST_ID, BLOCK_LENGTH), outStream);
+				RequestMessage rm = new RequestMessage(0, 0, BLOCK_LENGTH);
+				RequestMessage.send(rm, outStream);
 				m = Message.receive(inStream);
-			}*/
+			}
 			if(m != null)
 			{
+				// should be piece message at this point
+				// note: should write an equals method for each message type
 				System.out.println("Received message from peer: " + m.toString());
+				if (m.getID() == PieceMessage.PIECE_ID)
+				{
+					PieceMessage pm = (PieceMessage) m;
+					if (Util.verifyHash
+							(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+					{
+						System.out.println("Verified piece message");
+					}
+					else
+					{
+						System.out.println("Unable to verify piece message");
+					}
+				}
 				this.running = false;
 			}
 		}

@@ -84,6 +84,7 @@ public class Tracker
 		{
 			e.printStackTrace();
 		}
+		
 		this.trackerResponseMap = trackerResponseMap;
 	}
 	
@@ -124,7 +125,7 @@ public class Tracker
 				e.printStackTrace();
 			}
 			int port = (Integer) peerMap.get(KEY_PORT);
-			Peer p = new Peer(ip, port, peerId, localId, ti.info_hash.array());
+			Peer p = new Peer(ip, port, peerId, localId, ti.info_hash.array(), ti.piece_hashes);
 			peers.add(p);
 		}
 		this.peerList = peers;

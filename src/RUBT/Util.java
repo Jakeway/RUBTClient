@@ -8,7 +8,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 import GivenTools.BencodingException;
@@ -160,5 +163,29 @@ public class Util
 				return p;			
 		}
 		return null;
+	}
+	public static boolean verifyHash(byte[] input, byte[] hash)
+	{
+		System.out.println("Input length: " + input.length);
+		System.out.println("Hash length: " + hash.length);
+		MessageDigest sha1 = null;
+		try 
+		{
+			sha1 = MessageDigest.getInstance("SHA-1");
+		} 
+		catch (NoSuchAlgorithmException e) 
+		{
+			e.printStackTrace();
+		}
+		byte[] hashed_input = sha1.digest(input);
+		System.out.println("Hashed input length: " + hashed_input.length);
+		if (Arrays.equals(hashed_input, hash))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 }
