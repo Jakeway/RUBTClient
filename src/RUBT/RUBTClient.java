@@ -56,6 +56,6 @@ public class RUBTClient
 		
 		
 		rutgersPeer.run(rubt, t, ti);
-			
+		System.out.println("Download complete... Enjoy!");
 	}
 }
