@@ -31,6 +31,7 @@ public class RequestMessage extends Message {
 			out.writeInt(rm.pieceIndex);
 			out.writeInt(rm.byteOffset);
 			out.writeInt(rm.blockLength);
+			out.flush();
 		} 
 		catch (IOException e) 
 		{

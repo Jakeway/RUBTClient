@@ -53,7 +53,7 @@ public class RUBTClient
 		//t.printResponseMap();
 		
 		
-		rutgersPeer.run(rubt);
+		rutgersPeer.run(rubt, t);
 			
 	}
 }

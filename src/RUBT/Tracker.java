@@ -131,7 +131,7 @@ public class Tracker
 		this.peerList = peers;
 	}
 	
-	private void getResponse()
+	public void getResponse()
 	{
 		
 		int length = ti.file_length;
@@ -164,6 +164,7 @@ public class Tracker
 		initPeerMaps();
 		initPeerList();
 	}
+	
 	
 	
 }

@@ -62,12 +62,14 @@ public class Message
 			if (m.id != KEEP_ALIVE_ID)
 			{
 				out.writeByte(m.id);
+				out.flush();
 			}
 		} 
 		catch (IOException e) 
 		{
 			e.printStackTrace();
 		}
+
 	}
 	
 	public String toString()
@@ -144,8 +146,7 @@ public class Message
 			{
 				int piece = in.readInt();
 				int byteOffset = in.readInt();
-				int data = length - 9;
-				byte[] block = new byte[data];
+				byte[] block = new byte[length - 9];
 				in.readFully(block);
 				return new PieceMessage(piece, byteOffset, block);
 			}
@@ -158,7 +159,7 @@ public class Message
 			{
 				byte[] bitfield = new byte[length - 1];
 				in.readFully(bitfield);
-				return new BitfieldMessage(bitfield);
+				return new BitfieldMessage(length, bitfield);
 			}
 		}
 		catch (IOException e)

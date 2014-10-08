@@ -10,9 +10,9 @@ public class BitfieldMessage extends Message
 	
 	
 
-	public BitfieldMessage(byte[] bitfield)
+	public BitfieldMessage(int length, byte[] bitfield)
 	{
-		super(bitfield.length + 1, BITFIELD_ID);
+		super(length, BITFIELD_ID);
 		this.bitfield = bitfield;
 	}
 	
