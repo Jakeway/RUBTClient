@@ -12,6 +12,8 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
+import GivenTools.TorrentInfo;
+
 public class Peer extends Thread {
 
 	private final static ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
@@ -211,7 +213,7 @@ public class Peer extends Thread {
 	
 	
 	
-	public void run(RUBTClient rubt, Tracker t)
+	public void run(RUBTClient rubt, Tracker t, TorrentInfo ti)
 	{
 		this.rubt = rubt;
 		generateHandshake();
@@ -233,13 +235,11 @@ public class Peer extends Thread {
 		}
 		// this shouldn't be a trait of Message, should be trait of a peer
 		//Message.LAST_MESSAGE_TIME = System.currentTimeMillis();
-		while(running)
-		{
 			Message m = Message.receive(inStream);
 			if(m.toString().equals("UNCHOKE_MSG"))
 			{
 				
-				for (int i = 0; i < this.piece_hashes.length; i++)
+				for (int i = 0; i < this.piece_hashes.length-1; i++)
 				{
 					
 						System.out.println(i);
@@ -281,18 +281,44 @@ public class Peer extends Thread {
 									System.out.println("Unable to verify piece message");
 								}
 							}
-							
-							this.running = false;
+						}
+					}
+					int bytesLeft = ti.file_length - (pieceLength * (piece_hashes.length-1));
+					RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, bytesLeft);
+					RequestMessage.send(rm, outStream);
+					m = Message.receive(inStream);
+					if (m.getID() == PieceMessage.PIECE_ID)
+					{
+						PieceMessage pm = (PieceMessage) m;
+						if (Util.verifyHash
+								(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+						{
+							System.out.println("Verified piece message");
+
+						//	System.arraycopy(pm.getBlock(), 0, rubt.downloaded, ((i * 8 * pieceLength) + j * pieceLength), pieceLength);
+							try {
+								fos.write(pm.getBlock());
+								fos.flush();
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							HaveMessage hm = new HaveMessage(piece_hashes.length-1);
+							HaveMessage.send(hm, outStream);
+						}
+						else
+						{
+							System.out.println("Unable to verify piece message");
 						}
 					}
 				}
-			}
+			
 		try {
 			fos.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		}
+	}
 }
 
