@@ -42,6 +42,8 @@ public class Peer {
 	
 	private boolean running = true;
 	
+	private static final int BLOCK_LENGTH = 16348;
+	
 	public Peer(String ip, int port, String peerID,
 				String localID, byte[] infoHash)
 	{
@@ -202,9 +204,15 @@ public class Peer {
 		
 		Message m = Message.receive(inStream);
 		Message.send(Message.INTERESTED_MSG, outStream);
+		Message.LAST_MESSAGE = System.currentTimeMillis();
 		while(running)
 		{
 			m = Message.receive(inStream);
+			/*if(m.toString().equals("UNCHOKE_MSG"))
+			{
+				Message.send(new RequestMessage(RequestMessage.REQUEST_LENGTH, RequestMessage.REQUEST_ID, BLOCK_LENGTH), outStream);
+				m = Message.receive(inStream);
+			}*/
 			if(m != null)
 			{
 				System.out.println("Received message from peer: " + m.toString());

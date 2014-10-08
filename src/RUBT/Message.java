@@ -18,14 +18,6 @@ public class Message
 	
 	public static final byte UNINTERESTED_ID = 3;
 	
-	public static final byte HAVE_ID = 4;
-	
-	public static final byte BITFIELD_ID = 5;
-	
-	public static final byte REQUEST_ID = 6;
-	
-	public static final byte PIECE_ID = 7;
-	
 	public static final byte CANCEL_ID = 8;
 	
 	// not an actual standard, doesn't get used.
@@ -33,6 +25,8 @@ public class Message
 	public static final byte KEEP_ALIVE_ID = 8;
 	
 	public static final long KEEP_ALIVE_TIMER = 120000;
+	
+	public static long LAST_MESSAGE = 0;
 	
 	// The following are Messages used to communicate with the Peer
 	
@@ -126,19 +120,19 @@ public class Message
 						System.err.println("Received unrecognized message with length 1. ID: " + id);
 				}
 			}
-			else if(length == 5 && id == HAVE_ID)
+			else if(length == 5 && id == HaveMessage.HAVE_ID)
 			{
 				int piece = in.readInt();
 				return new HaveMessage(piece);
 			}
-			else if(length == 13 && id == REQUEST_ID)
+			else if(length == 13 && id == RequestMessage.REQUEST_ID)
 			{
 				int piece = in.readInt();
 				int byteOffset = in.readInt();
 				int byteLength = in.readInt();
 				return new RequestMessage(piece, byteOffset, byteLength);
 			}
-			else if(length >= 9 && id == PIECE_ID)
+			else if(length >= 9 && id == PieceMessage.PIECE_ID)
 			{
 				int piece = in.readInt();
 				int byteOffset = in.readInt();
@@ -152,7 +146,7 @@ public class Message
 				System.out.println("Cancel_Msg");
 				return null;
 			}
-			else if(id == BITFIELD_ID)
+			else if(id == BitfieldMessage.BITFIELD_ID)
 			{
 				byte[] bitfield = new byte[length - 1];
 				in.readFully(bitfield);

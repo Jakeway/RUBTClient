@@ -6,11 +6,11 @@ public class BitfieldMessage extends Message
 
 	private byte[] bitfield;
 	
-
+	public static final byte BITFIELD_ID = 5;
 
 	public BitfieldMessage(byte[] bitfield)
 	{
-		super(bitfield.length + 1, Message.BITFIELD_ID);
+		super(bitfield.length + 1, BITFIELD_ID);
 		this.bitfield = bitfield;
 	}
 	
