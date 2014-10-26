@@ -164,6 +164,23 @@ public class Util
 		}
 		return null;
 	}
+	
+	//method which finds all of the valid peers
+	public static ArrayList<Peer> findMultiplePeers(ArrayList<Peer> peers)
+	{
+		ArrayList<Peer> listOfPeers = new ArrayList<Peer>();
+		for(Peer p : peers)
+		{
+			String pIP = p.getPeerIP();
+			if(pIP.equals("128.6.171.130") || pIP.equals("128.6.171.131"))
+			{
+				p.start();
+				listOfPeers.add(p);
+			}
+		}
+		return listOfPeers;
+	}
+	
 	public static boolean verifyHash(byte[] input, byte[] hash)
 	{
 		MessageDigest sha1 = null;

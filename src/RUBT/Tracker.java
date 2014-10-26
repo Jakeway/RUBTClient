@@ -42,11 +42,14 @@ public class Tracker
 	
 	private final ByteBuffer KEY_PORT = ByteBuffer.wrap(new byte[] {
 			'p', 'o', 'r', 't' });
+	
+	private RUBTClient rubt;
 
-	public Tracker(TorrentInfo ti, String localId)
+	public Tracker(TorrentInfo ti, String localId, RUBTClient rubt)
 	{
 		this.ti = ti;
 		this.localId = localId;
+		this.rubt = rubt;
 		initTracker();
 	}
 	
@@ -125,7 +128,7 @@ public class Tracker
 				e.printStackTrace();
 			}
 			int port = (Integer) peerMap.get(KEY_PORT);
-			Peer p = new Peer(ip, port, peerId, localId, ti.info_hash.array(), ti.piece_hashes, ti.piece_length);
+			Peer p = new Peer(ip, port, peerId, localId, ti.info_hash.array(), ti.piece_hashes, ti.piece_length, ti.file_length, rubt);
 			peers.add(p);
 		}
 		this.peerList = peers;

@@ -13,7 +13,7 @@ import java.nio.ByteBuffer;
 
 import GivenTools.TorrentInfo;
 
-public class Peer 
+public class Peer extends Thread
 {
 
 	private final static ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
@@ -51,12 +51,14 @@ public class Peer
 	
 	private boolean running = true;
 	
+	private int file_length;
+	
 	
 
 	
 	public Peer(String ip, int port, String peerID,
 				String localID, byte[] infoHash,
-				ByteBuffer[] piece_hashes, int piece_length)
+				ByteBuffer[] piece_hashes, int piece_length,int file_length, RUBTClient rubt)
 	{
 		this.ip = ip;
 		this.port = port;
@@ -65,6 +67,8 @@ public class Peer
 		this.infoHash = infoHash;
 		this.piece_hashes = piece_hashes;
 		this.pieceLength = piece_length;
+		this.file_length = file_length;
+		this.rubt = rubt;
 	}
 	
 	
@@ -148,6 +152,10 @@ public class Peer
 	{
 		return this.peerID;
 	}
+	public String getPeerIP()
+	{
+		return this.ip;
+	}
 	
 	private Boolean verifyResponse(byte[] peerHandshake)
 	{
@@ -213,9 +221,8 @@ public class Peer
 	
 	
 	
-	public void run(RUBTClient rubt, Tracker t, TorrentInfo ti)
+	public void run()
 	{
-		this.rubt = rubt;
 		generateHandshake();
 		getConnection();
 		validateHandshake();
@@ -286,7 +293,7 @@ public class Peer
 							}
 						}
 					}
-					int bytesLeft = ti.file_length - (pieceLength * (piece_hashes.length-1));
+					int bytesLeft = file_length - (pieceLength * (piece_hashes.length-1));
 					RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, bytesLeft);
 					RequestMessage.send(rm, outStream);
 					m = Message.receive(inStream);

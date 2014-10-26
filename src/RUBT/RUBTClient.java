@@ -49,13 +49,16 @@ public class RUBTClient
 		RUBTClient rubt = new RUBTClient(ti.file_length, destFile);
 		
 		String localID = Util.getRandomPeerId();
-		Tracker t = new Tracker(ti, localID);
+		Tracker t = new Tracker(ti, localID, rubt);
 		//t.printResponseMap();
-		Peer rutgersPeer = Util.findPeer(t.getPeerList());
-		//t.printResponseMap();
-		
-		
-		rutgersPeer.run(rubt, t, ti);
+		//Peer rutgersPeer = Util.findPeer(t.getPeerList());
+		t.printResponseMap();
+		ArrayList<Peer> rutgersPeers = Util.findMultiplePeers(t.getPeerList());
+		long startTime = System.nanoTime();
+		//rutgersPeer.run(rubt, t, ti);
+		long endTime = System.nanoTime() - startTime;
+
+		System.out.println("Total time in nanoseconds: " + endTime);
 		System.out.println("Download complete... Enjoy!");
 	}
 }
