@@ -14,11 +14,13 @@ public class RUBTClient
 	
 	byte[] downloaded;
 	File f;
+	ArrayList<Integer> needPieces;
 	
-	public RUBTClient(int fileLength, File saveFile)
+	public RUBTClient(int fileLength, File saveFile, ArrayList<Integer> pieces)
 	{
 		downloaded = new byte[fileLength];
 		f = saveFile;
+		needPieces = pieces;
 	}
 	
 	public static void main(String[] args)
@@ -46,18 +48,21 @@ public class RUBTClient
 		
 		ti = Util.getTorrentInfo(torrentFile);
 		
-		RUBTClient rubt = new RUBTClient(ti.file_length, destFile);
+		RUBTClient rubt = new RUBTClient(ti.file_length, destFile, Util.needPieces(ti.piece_hashes));
 		
 		String localID = Util.getRandomPeerId();
 		Tracker t = new Tracker(ti, localID, rubt);
 		//t.printResponseMap();
 		//Peer rutgersPeer = Util.findPeer(t.getPeerList());
 		t.printResponseMap();
+		for(int i = 0; i < rubt.needPieces.size(); i++)
+		{
+			System.out.print(rubt.needPieces.get(i) + " ");
+		}
 		ArrayList<Peer> rutgersPeers = Util.findMultiplePeers(t.getPeerList());
 		long startTime = System.nanoTime();
 		//rutgersPeer.run(rubt, t, ti);
 		long endTime = System.nanoTime() - startTime;
-
 		System.out.println("Total time in nanoseconds: " + endTime);
 		System.out.println("Download complete... Enjoy!");
 	}

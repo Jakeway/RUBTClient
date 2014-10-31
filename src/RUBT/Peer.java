@@ -248,6 +248,17 @@ public class Peer extends Thread
 			{
 				System.out.println("Received unchoked message");
 				System.out.println("Starting download... Please wait patiently.");
+				
+				while(rubt.needPieces.size() != 0) 
+				{
+					int random = (int)(Math.random() * rubt.needPieces.size() - 1);
+					//do message stuff
+					//after storing piece
+					rubt.needPieces.remove(random);
+				}
+				
+				
+				
 				for (int i = 0; i < this.piece_hashes.length-1; i++)
 				{
 					

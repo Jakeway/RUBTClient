@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -174,11 +175,21 @@ public class Util
 			String pIP = p.getPeerIP();
 			if(pIP.equals("128.6.171.130") || pIP.equals("128.6.171.131"))
 			{
-				p.start();
+				//p.start();
 				listOfPeers.add(p);
 			}
 		}
 		return listOfPeers;
+	}
+	
+	public static ArrayList<Integer> needPieces(ByteBuffer[] piece_hashes)
+	{
+		ArrayList<Integer> pieces = new ArrayList<Integer>();
+		for(int i = 0; i < piece_hashes.length; i++)
+		{
+			pieces.add(i);
+		}
+		return pieces;
 	}
 	
 	public static boolean verifyHash(byte[] input, byte[] hash)
