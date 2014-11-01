@@ -1,13 +1,11 @@
 package RUBT;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 public class PieceMessage extends Message {
 
 	private int pieceIndex;
 	private int byteOffset;
-	private byte[] block;
+	byte[] block;
 	
 	public static final byte PIECE_ID = 7;
 
@@ -29,5 +27,10 @@ public class PieceMessage extends Message {
 		return block;
 	}
 	
-
+	public int getPieceSize()
+	{
+		return block.length;
+	}
+	
+	
 }

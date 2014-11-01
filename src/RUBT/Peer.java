@@ -2,16 +2,12 @@ package RUBT;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-
-import GivenTools.TorrentInfo;
 
 public class Peer extends Thread
 {
@@ -45,20 +41,25 @@ public class Peer extends Thread
 	
 	private boolean verified = false;
 	
-	private RUBTClient rubt;
-	
 	private final int VALIDATION_ATTEMPTS = 1;
 	
-	private boolean running = true;
-	
 	private int file_length;
-	
-	
+
+	private PeerManager pMgr;
 
 	
-	public Peer(String ip, int port, String peerID,
-				String localID, byte[] infoHash,
-				ByteBuffer[] piece_hashes, int piece_length,int file_length, RUBTClient rubt)
+	
+	
+	
+	public Peer(
+			String ip,
+			int port,
+			String peerID,
+			String localID,
+			byte[] infoHash,
+			ByteBuffer[] piece_hashes,
+			int piece_length,
+			int file_length)
 	{
 		this.ip = ip;
 		this.port = port;
@@ -68,9 +69,23 @@ public class Peer extends Thread
 		this.piece_hashes = piece_hashes;
 		this.pieceLength = piece_length;
 		this.file_length = file_length;
-		this.rubt = rubt;
 	}
 	
+	
+	public String getIP()
+	{
+		return ip;
+	}
+	
+	public void setPeerManager(PeerManager pMgr)
+	{
+		this.pMgr = pMgr;
+	}
+	
+	public DataOutputStream getOutputStream()
+	{
+		return this.outStream;
+	}
 	
 	
 	private void generateHandshake()
@@ -214,11 +229,85 @@ public class Peer extends Thread
 			System.err.println("Failed to validate handshake from remote peer after "
 					+ VALIDATION_ATTEMPTS + " times. Try again.");
 			System.exit(1);
-			this.running = false;
 		}
 	}
 	
+
+
+
+	/*
+	 * This method is responsible for getting a PieceMessage, nothing more.
+	 */
 	
+	public PieceMessage getPieceMessage(int pieceNum)
+	{
+		
+		Message pieceMessage;
+		RequestMessage rm = new RequestMessage(pieceNum, 0, pieceLength);
+		RequestMessage.send(rm, outStream);
+	
+		pieceMessage = Message.receive(inStream);
+	
+		if(pieceMessage != null)
+		{
+			// should be piece message at this point
+			// note: should write an equals method for each message type
+			
+			if (pieceMessage.getID() == PieceMessage.PIECE_ID)
+			{
+				PieceMessage pm = (PieceMessage) pieceMessage;
+				if (Util.verifyHash
+						(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+				{
+					return pm;
+				}
+				else
+				{
+					System.err.println("Unable to verify piece message");
+					System.exit(1);
+				}
+			}
+		}
+		
+		return null;
+	}
+	
+	
+	public synchronized void getLastMessage()
+	{
+		int bytesLeft = file_length - (pieceLength * (piece_hashes.length-1));
+		System.out.println("bytes left: " + bytesLeft);
+		RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, bytesLeft);
+		RequestMessage.send(rm, outStream);
+		Message m = Message.receive(inStream);
+		if (m != null)
+		{
+			if (m.getID() == PieceMessage.PIECE_ID)
+			{
+				PieceMessage pm = (PieceMessage) m;
+				if (Util.verifyHash
+						(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+				{
+					System.out.println("verified last piece");
+					pMgr.digestPieceMessage(pm);
+					// tell the peer manager we have downloaded last piece
+					pMgr.finishedDownloading();
+				}
+				else
+				{
+					System.err.println("Unable to verify piece message");
+					System.exit(1);
+				}
+			}
+		}
+		else
+		{
+			System.err.println("Received a null message as the last message");
+			System.exit(1);
+		}
+	}
+		
+
 	
 	
 	public void run()
@@ -227,122 +316,43 @@ public class Peer extends Thread
 		getConnection();
 		validateHandshake();
 		
-		// first message after handshake is bitfield message
+		// first message after handshake is bitfield message (not always the case, need to check for this)
 		BitfieldMessage bm = (BitfieldMessage) Message.receive(inStream);
 		
 		System.out.println("Sending interested message");
 		Message.send(Message.INTERESTED_MSG, outStream);
 		
-		
-		FileOutputStream fos = null;
-		try {
-			fos = new FileOutputStream(rubt.f);
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		// this shouldn't be a trait of Message, should be trait of a peer
+
 		//Message.LAST_MESSAGE_TIME = System.currentTimeMillis();
-			Message m = Message.receive(inStream);
-			if(m.toString().equals("UNCHOKE_MSG"))
-			{
-				System.out.println("Received unchoked message");
-				System.out.println("Starting download... Please wait patiently.");
-				
-				while(rubt.needPieces.size() != 0) 
-				{
-					int random = (int)(Math.random() * rubt.needPieces.size() - 1);
-					//do message stuff
-					//after storing piece
-					rubt.needPieces.remove(random);
-				}
-				
-				
-				
-				for (int i = 0; i < this.piece_hashes.length-1; i++)
-				{
-					
-						//System.out.println(i);
-					//	System.out.println((i * 8 * pieceLength) + j * pieceLength);
-	
-						
-						RequestMessage rm = new RequestMessage(i, 0, pieceLength);
-						RequestMessage.send(rm, outStream);
-
-						m = Message.receive(inStream);
-				
-						if(m != null)
-						{
-							// should be piece message at this point
-							// note: should write an equals method for each message type
-					//		System.out.println("Received message from peer: " + m.toString());
-							
-							if (m.getID() == PieceMessage.PIECE_ID)
-							{
-								PieceMessage pm = (PieceMessage) m;
-								if (Util.verifyHash
-										(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
-								{
-								//	System.out.println("Verified piece message");
-
-								//	System.arraycopy(pm.getBlock(), 0, rubt.downloaded, ((i * 8 * pieceLength) + j * pieceLength), pieceLength);
-									try {
-										fos.write(pm.getBlock());
-										fos.flush();
-									} catch (IOException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-									HaveMessage hm = new HaveMessage(i);
-									HaveMessage.send(hm, outStream);
-								}
-								else
-								{
-									System.err.println("Unable to verify piece message");
-									System.exit(1);
-								}
-							}
-						}
-					}
-					int bytesLeft = file_length - (pieceLength * (piece_hashes.length-1));
-					RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, bytesLeft);
-					RequestMessage.send(rm, outStream);
-					m = Message.receive(inStream);
-					if (m.getID() == PieceMessage.PIECE_ID)
-					{
-						PieceMessage pm = (PieceMessage) m;
-						if (Util.verifyHash
-								(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
-						{
-						//	System.out.println("Verified piece message");
-
-						//	System.arraycopy(pm.getBlock(), 0, rubt.downloaded, ((i * 8 * pieceLength) + j * pieceLength), pieceLength);
-							try {
-								fos.write(pm.getBlock());
-								fos.flush();
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							HaveMessage hm = new HaveMessage(piece_hashes.length-1);
-							HaveMessage.send(hm, outStream);
-						}
-						else
-						{
-							System.err.println("Unable to verify piece message");
-							System.exit(1);
-						}
-					}
-				}
-			
-		try {
-			fos.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		
+	
+		Message m = Message.receive(inStream);
+		if(m.toString().equals("UNCHOKE_MSG"))
+		{
+			System.out.println("Received unchoked message");
+			System.out.println("Starting download... Please wait patiently.");
+			
+	
+			
+			while(pMgr.piecesLeft.size() != 0) 
+			{
+				int random = Util.getRandomInt(pMgr.piecesLeft.size());
+				int pieceToGet = pMgr.piecesLeft.get(random);
+				System.out.println("Getting piece: " + pieceToGet);
+				PieceMessage pieceMessage = getPieceMessage(pieceToGet);
+				if (pieceMessage != null)
+				{
+					pMgr.digestPieceMessage(pieceMessage);
+				}
+			}
+				
+			// at this point, there is only one piece left to get. peers need to fight to death to determine who gets to download last piece
+			System.out.println("downloading last message");
+			getLastMessage();
+			
+		}
 		closeConnection();
 	}
+
 }
 

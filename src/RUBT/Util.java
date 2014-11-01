@@ -128,6 +128,14 @@ public class Util
 		return ti;
 	}
 	
+	public static int getRandomInt(int size)
+	{
+		Random rand = new Random();
+		int randInt = rand.nextInt(size);
+		return randInt;
+	}
+	
+	
 	public static String getRandomPeerId()
 	{
 	    Random rand = new Random();
@@ -154,26 +162,16 @@ public class Util
 		}
 	}
 	
-	// method which finds us the Rutgers peer to use
-	public static Peer findPeer(ArrayList<Peer> peers)
-	{
-		for(Peer p : peers)
-		{
-			String pID = p.getPeerID().substring(0, 8);
-			if(pID.equals("-AZ5400-"))
-				return p;			
-		}
-		return null;
-	}
 	
 	//method which finds all of the valid peers
-	public static ArrayList<Peer> findMultiplePeers(ArrayList<Peer> peers)
+	public static ArrayList<Peer> findRutgersPeers(ArrayList<Peer> peers)
 	{
 		ArrayList<Peer> listOfPeers = new ArrayList<Peer>();
 		for(Peer p : peers)
 		{
 			String pIP = p.getPeerIP();
-			if(pIP.equals("128.6.171.130") || pIP.equals("128.6.171.131"))
+			// pIP.equals("128.6.171.130") currently down
+			if(pIP.equals("128.6.171.131"))
 			{
 				//p.start();
 				listOfPeers.add(p);
@@ -182,10 +180,14 @@ public class Util
 		return listOfPeers;
 	}
 	
-	public static ArrayList<Integer> needPieces(ByteBuffer[] piece_hashes)
+	public static ArrayList<Integer> getPiecesLeft(ByteBuffer[] piece_hashes)
 	{
 		ArrayList<Integer> pieces = new ArrayList<Integer>();
-		for(int i = 0; i < piece_hashes.length; i++)
+		
+		// length - 1, because the last piece is a bit funky (might have different pieceSize than all other pieces)
+		// meaning that we will deal with that last piece for the end
+		
+		for(int i = 0; i < piece_hashes.length-1; i++)
 		{
 			pieces.add(i);
 		}

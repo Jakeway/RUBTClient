@@ -1,40 +1,30 @@
 package RUBT;
 
 
-import java.io.*;
-import java.net.*;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.io.File;
 
-import GivenTools.*;
+import GivenTools.TorrentInfo;
 
 public class RUBTClient 
 {
-	
-	byte[] downloaded;
-	File f;
-	ArrayList<Integer> needPieces;
-	
-	public RUBTClient(int fileLength, File saveFile, ArrayList<Integer> pieces)
-	{
-		downloaded = new byte[fileLength];
-		f = saveFile;
-		needPieces = pieces;
-	}
-	
+
 	public static void main(String[] args)
 	{	
+		boolean DEBUG = false;
 		
 		TorrentInfo ti = null;
 		
-		if(args.length > 2 || args.length <= 1)
+		if(args.length > 3 || args.length <= 1)
 		{
 			System.err.println("Please enter two arguments.");
 			System.exit(1);
 		}
+		
 		File torrentFile = null;
 		File destFile = null;
+		
+		if (!(DEBUG))
+		{
 		try
 		{
 			torrentFile = new File(args[0]);
@@ -45,25 +35,20 @@ public class RUBTClient
 			e.printStackTrace();
 			System.exit(1);
 		}
+		}
+		
+		else
+		{
+			torrentFile = new File("Phase2.torrent");
+			destFile = new File("test2.mp4");
+		}
 		
 		ti = Util.getTorrentInfo(torrentFile);
-		
-		RUBTClient rubt = new RUBTClient(ti.file_length, destFile, Util.needPieces(ti.piece_hashes));
-		
 		String localID = Util.getRandomPeerId();
-		Tracker t = new Tracker(ti, localID, rubt);
-		//t.printResponseMap();
-		//Peer rutgersPeer = Util.findPeer(t.getPeerList());
-		t.printResponseMap();
-		for(int i = 0; i < rubt.needPieces.size(); i++)
-		{
-			System.out.print(rubt.needPieces.get(i) + " ");
-		}
-		ArrayList<Peer> rutgersPeers = Util.findMultiplePeers(t.getPeerList());
-		long startTime = System.nanoTime();
-		//rutgersPeer.run(rubt, t, ti);
-		long endTime = System.nanoTime() - startTime;
-		System.out.println("Total time in nanoseconds: " + endTime);
-		System.out.println("Download complete... Enjoy!");
+		Tracker t = new Tracker(ti, localID);
+		
+		PeerManager peerMgr = new PeerManager(ti.file_length, destFile, Util.getPiecesLeft(ti.piece_hashes), t.getPeerList());
+		peerMgr.startDownloading();
+
 	}
 }
