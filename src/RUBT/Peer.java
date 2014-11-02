@@ -280,7 +280,7 @@ public class Peer extends Thread
 	
 	public synchronized void getLastMessage()
 	{
-		//int bytesLeft = file_length % pieceLength;
+
 		int pieceSize = file_length % pieceLength;
 		System.out.println("bytes left: " + pieceSize);
 		RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, pieceSize);
@@ -325,23 +325,16 @@ public class Peer extends Thread
 		
 		System.out.println("Sending interested message");
 		Message.send(Message.INTERESTED_MSG, outStream);
-		
-
-		//Message.LAST_MESSAGE_TIME = System.currentTimeMillis();
-		
-	
 		Message m = Message.receive(inStream);
 		if(m.toString().equals("UNCHOKE_MSG"))
 		{
 			System.out.println("Received unchoked message");
 			System.out.println("Starting download... Please wait patiently.");
 			
-			//getLastMessage();
 			while(pMgr.piecesLeft.size() != 0) 
 			{
 				int random = Util.getRandomInt(pMgr.piecesLeft.size());
 				int pieceToGet = pMgr.piecesLeft.get(random);
-				//System.out.println("Getting piece: " + pieceToGet);
 				PieceMessage pieceMessage = getPieceMessage(pieceToGet);
 				if (pieceMessage != null)
 				{

@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.concurrent.TimeUnit;
 
 import GivenTools.TorrentInfo;
 
@@ -14,8 +15,11 @@ public class RUBTClient
 	public static void main(String[] args)
 	{	
 		boolean DEBUG = false;
+		long start = System.nanoTime();
 		
 		TorrentInfo ti = null;
+		File torrentFile = null;
+		RandomAccessFile destFile = null;
 		
 		if(args.length > 3 || args.length <= 1)
 		{
@@ -23,36 +27,33 @@ public class RUBTClient
 			System.exit(1);
 		}
 		
-		File torrentFile = null;
-		RandomAccessFile destFile = null;
-		
-		if (!(DEBUG))
+		if (DEBUG)
 		{
-		try
-		{
-			torrentFile = new File(args[0]);
-			destFile = new RandomAccessFile(args[1], "rw");
-		}
-		catch (NullPointerException e)
-		{
-			e.printStackTrace();
-			System.exit(1);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			torrentFile = new File("Phase2.torrent");
+			try 
+			{
+				destFile = new RandomAccessFile("test2.mp4", "rw");
+			} 
+			catch (FileNotFoundException e) 
+			{
+				e.printStackTrace();
+			}
 		}
 		
 		else
 		{
-			torrentFile = new File("Phase2.torrent");
-			try {
-				destFile = new RandomAccessFile("test2.mp4", "rw");
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
+			try
+			{
+				torrentFile = new File(args[0]);
+				destFile = new RandomAccessFile(args[1], "rw");
+			}
+			catch (NullPointerException e)
+			{
 				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
+				System.exit(1);
+			}
+			catch (FileNotFoundException e)
+			{
 				e.printStackTrace();
 			}
 		}
@@ -61,16 +62,20 @@ public class RUBTClient
 		String localID = Util.getRandomPeerId();
 		Tracker t = new Tracker(ti, localID);
 		
-		t.printResponseMap();
-		try {
+		try 
+		{
 			destFile.setLength(ti.file_length);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} 
+		catch (IOException e) 
+		{
 			e.printStackTrace();
 		}
 		
-		PeerManager peerMgr = new PeerManager(ti.file_length, ti.piece_length, destFile, Util.getPiecesLeft(ti.piece_hashes), t.getPeerList());
-		peerMgr.startDownloading();
+		// need method that reads in the file to see if any of it has been downloaded yet
+		// then make the corresponding piecesLeft list
+		
+		PeerManager peerMgr = new PeerManager(ti.piece_length, destFile, Util.getPiecesLeft(ti.piece_hashes), t.getPeerList());
+		peerMgr.start();
 
 	}
 }

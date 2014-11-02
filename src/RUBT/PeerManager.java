@@ -4,9 +4,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
-public class PeerManager
+public class PeerManager extends Thread
 {
 	RandomAccessFile saveFile;
 	ArrayList<Integer> piecesLeft;
@@ -14,8 +14,11 @@ public class PeerManager
 	ArrayList<Peer> rutgersPeers;
 	int amountDownloaded = 0;
 	int pieceLength;
+	long startTime;
+	long endTime;
+	final double NANO_TO_SECOND_CONVERSION = 1000000000.0;
 	
-	public PeerManager(int fileLength, int pieceLength, RandomAccessFile destFile, ArrayList<Integer> pieces, ArrayList<Peer> peers)
+	public PeerManager(int pieceLength, RandomAccessFile destFile, ArrayList<Integer> pieces, ArrayList<Peer> peers)
 	{
 		this.pieceLength = pieceLength;
 		this.saveFile = destFile;
@@ -35,6 +38,7 @@ public class PeerManager
 	
 	public void startDownloading()
 	{
+		startTime = System.nanoTime();
 		for (Peer p : rutgersPeers)
 		{
 			System.out.println("starting a peer");
@@ -53,12 +57,14 @@ public class PeerManager
 	public void insertPieceInfo(PieceMessage pm)
 	{
 		int pieceIndex = pm.getPieceIndex();
-		try {
+		try 
+		{
 			saveFile.seek(pieceIndex * pieceLength);
 			saveFile.write(pm.getBlock());
 			amountDownloaded += pm.getBlock().length;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} 
+		catch (IOException e)
+		{
 			e.printStackTrace();
 		}
 		
@@ -75,13 +81,12 @@ public class PeerManager
 	
 	public void finishedDownloading()
 	{
-		System.out.println("finished downloading");
-		try {
-			System.out.println("downloaded " + amountDownloaded + " out of " + saveFile.length());
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		endTime = System.nanoTime();
+		long elapsedTimeSeconds = TimeUnit.SECONDS.convert(endTime-startTime, TimeUnit.NANOSECONDS);
+		int minutes = (int) (elapsedTimeSeconds / 60);
+		int seconds = (int) (elapsedTimeSeconds % 60);
+		
+		System.out.println("took " + minutes + " minutes and " + seconds + " seconds to download file");
 		// if a peer calls this message, all the pieces have been downloaded
 		/// interrupt all threads
 		// write to file
@@ -97,9 +102,13 @@ public class PeerManager
 		{
 			e.printStackTrace();
 		}
+		
 	}
 		
-	
+	public void run()
+	{
+		startDownloading();
+	}
 	
 	
 	

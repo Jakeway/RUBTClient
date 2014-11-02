@@ -175,7 +175,12 @@ public class Util
 			{
 				rutgersPeers.add(p);
 			}
-			
+		/*	
+			if (pIP.equals("128.6.171.130"))
+			{
+				rutgersPeers.add(p);
+			}
+			*/
 		}
 		return rutgersPeers;
 	}
