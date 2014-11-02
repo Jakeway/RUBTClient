@@ -163,21 +163,21 @@ public class Util
 	}
 	
 	
-	//method which finds all of the valid peers
+	//method which finds all of the rutgers peers
 	public static ArrayList<Peer> findRutgersPeers(ArrayList<Peer> peers)
 	{
-		ArrayList<Peer> listOfPeers = new ArrayList<Peer>();
+		ArrayList<Peer> rutgersPeers = new ArrayList<Peer>();
 		for(Peer p : peers)
 		{
 			String pIP = p.getPeerIP();
 			// pIP.equals("128.6.171.130") currently down
-			if(pIP.equals("128.6.171.131"))
+			if(pIP.equals("128.6.171.131") && p.getPeerId().equals("-AZ5400-RcPjQXoVG7wb"))
 			{
-				//p.start();
-				listOfPeers.add(p);
+				rutgersPeers.add(p);
 			}
+			
 		}
-		return listOfPeers;
+		return rutgersPeers;
 	}
 	
 	public static ArrayList<Integer> getPiecesLeft(ByteBuffer[] piece_hashes)

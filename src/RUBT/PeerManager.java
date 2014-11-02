@@ -1,24 +1,21 @@
 package RUBT;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class PeerManager
 {
-
-	byte[] downloaded;
-	File saveFile;
+	RandomAccessFile saveFile;
 	ArrayList<Integer> piecesLeft;
 	ArrayList<Peer> peers;
 	ArrayList<Peer> rutgersPeers;
 
-	public PeerManager(int fileLength, File saveFile, ArrayList<Integer> pieces, ArrayList<Peer> peers)
+	public PeerManager(int fileLength, RandomAccessFile destFile, ArrayList<Integer> pieces, ArrayList<Peer> peers)
 	{
-		this.downloaded = new byte[fileLength];
-		this.saveFile = saveFile;
+		this.saveFile = destFile;
 		this.piecesLeft = pieces;
 		this.peers = peers;
 		this.rutgersPeers = Util.findRutgersPeers(peers);
@@ -53,15 +50,24 @@ public class PeerManager
 	public void insertPieceInfo(PieceMessage pm)
 	{
 		int pieceIndex = pm.getPieceIndex();
+	
+		int pieceLength = pm.getPieceSize();
 
-		int pieceSize = pm.getPieceSize();
-
-		int firstByteIndex = pieceIndex * pieceSize;
-
-		for (int i = firstByteIndex, j=0; i < firstByteIndex + pieceSize; i++, j++)
+		
+		if (pm.getPieceSize() == 31734)
 		{
-			downloaded[i] = pm.block[j];
+			System.out.println("downloading last piece");
+			System.out.println(pieceIndex);
 		}
+
+		try {
+			saveFile.seek(pieceIndex * pieceLength);
+			saveFile.write(pm.getBlock());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public void sendHaveMessages(int pieceNum)
@@ -81,10 +87,7 @@ public class PeerManager
 		// write to file
 		try 
 		{
-			FileOutputStream fos = new FileOutputStream(saveFile);
-			fos.write(downloaded);
-			fos.close();
-			
+			saveFile.close();	
 		} 
 		catch (FileNotFoundException e) 
 		{

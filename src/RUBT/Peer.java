@@ -82,6 +82,11 @@ public class Peer extends Thread
 		this.pMgr = pMgr;
 	}
 	
+	public String getPeerId()
+	{
+		return peerID;
+	}
+	
 	public DataOutputStream getOutputStream()
 	{
 		return this.outStream;
@@ -275,9 +280,10 @@ public class Peer extends Thread
 	
 	public synchronized void getLastMessage()
 	{
-		int bytesLeft = file_length - (pieceLength * (piece_hashes.length-1));
-		System.out.println("bytes left: " + bytesLeft);
-		RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, bytesLeft);
+		//int bytesLeft = file_length % pieceLength;
+		int pieceSize = file_length % pieceLength;
+		System.out.println("bytes left: " + pieceSize);
+		RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, pieceSize);
 		RequestMessage.send(rm, outStream);
 		Message m = Message.receive(inStream);
 		if (m != null)
@@ -290,8 +296,6 @@ public class Peer extends Thread
 				{
 					System.out.println("verified last piece");
 					pMgr.digestPieceMessage(pm);
-					// tell the peer manager we have downloaded last piece
-					pMgr.finishedDownloading();
 				}
 				else
 				{
@@ -332,23 +336,23 @@ public class Peer extends Thread
 			System.out.println("Received unchoked message");
 			System.out.println("Starting download... Please wait patiently.");
 			
-	
-			
+			//getLastMessage();
 			while(pMgr.piecesLeft.size() != 0) 
 			{
 				int random = Util.getRandomInt(pMgr.piecesLeft.size());
 				int pieceToGet = pMgr.piecesLeft.get(random);
-				System.out.println("Getting piece: " + pieceToGet);
+				//System.out.println("Getting piece: " + pieceToGet);
 				PieceMessage pieceMessage = getPieceMessage(pieceToGet);
 				if (pieceMessage != null)
 				{
 					pMgr.digestPieceMessage(pieceMessage);
 				}
 			}
-				
 			// at this point, there is only one piece left to get. peers need to fight to death to determine who gets to download last piece
 			System.out.println("downloading last message");
 			getLastMessage();
+			// tell the peer manager we have downloaded last piece, he's going to be so proud of us
+			pMgr.finishedDownloading();
 			
 		}
 		closeConnection();
