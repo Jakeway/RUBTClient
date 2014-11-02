@@ -170,8 +170,9 @@ public class Util
 		for(Peer p : peers)
 		{
 			String pIP = p.getPeerIP();
+			String pID = p.getPeerID().substring(0,8);
 			// pIP.equals("128.6.171.130") currently down
-			if(pIP.equals("128.6.171.131") && p.getPeerId().equals("-AZ5400-RcPjQXoVG7wb"))
+			if(pIP.equals("128.6.171.131") && pID.equals("-AZ5400-"))
 			{
 				rutgersPeers.add(p);
 			}
