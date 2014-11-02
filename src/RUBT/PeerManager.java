@@ -3,6 +3,8 @@ package RUBT;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -16,7 +18,7 @@ public class PeerManager extends Thread
 	int pieceLength;
 	long startTime;
 	long endTime;
-	final double NANO_TO_SECOND_CONVERSION = 1000000000.0;
+	ServerSocket servSock;
 	
 	public PeerManager(int pieceLength, RandomAccessFile destFile, ArrayList<Integer> pieces, ArrayList<Peer> peers)
 	{
@@ -25,6 +27,14 @@ public class PeerManager extends Thread
 		this.piecesLeft = pieces;
 		this.peers = peers;
 		this.rutgersPeers = Util.findRutgersPeers(peers);
+		try 
+		{
+			servSock = new ServerSocket(Tracker.TRACKER_PORT_INT);
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 		printPeers();
 	}
 	
@@ -87,6 +97,10 @@ public class PeerManager extends Thread
 		int seconds = (int) (elapsedTimeSeconds % 60);
 		
 		System.out.println("took " + minutes + " minutes and " + seconds + " seconds to download file");
+		
+		// need to tell the tracker that we have finished downloading
+		
+		
 		// if a peer calls this message, all the pieces have been downloaded
 		/// interrupt all threads
 		// write to file
@@ -102,12 +116,32 @@ public class PeerManager extends Thread
 		{
 			e.printStackTrace();
 		}
-		
 	}
+	
+	public void startUploading()
+	{
+		Peer p;
+		while (true)
+		{
+			try 
+			{
+				Socket s = servSock.accept();
+				
+			} 
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+			}
+			
+		}
+	}
+	
 		
 	public void run()
 	{
 		startDownloading();
+		startUploading();
+		
 	}
 	
 	

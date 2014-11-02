@@ -29,7 +29,8 @@ public class Tracker
 	private ArrayList<Peer> peerList;
 	
 	// port to contact tracker with
-	private final String TRACKER_PORT = "6881";
+	public static final String TRACKER_PORT = "6881";
+	public static final int TRACKER_PORT_INT = 6881;
 	
 	private final ByteBuffer KEY_PEERS = ByteBuffer.wrap(new byte[] {
 			'p', 'e', 'e', 'r', 's' });

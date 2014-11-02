@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.concurrent.TimeUnit;
 
 import GivenTools.TorrentInfo;
 
@@ -15,7 +14,6 @@ public class RUBTClient
 	public static void main(String[] args)
 	{	
 		boolean DEBUG = false;
-		long start = System.nanoTime();
 		
 		TorrentInfo ti = null;
 		File torrentFile = null;
@@ -73,7 +71,7 @@ public class RUBTClient
 		
 		// need method that reads in the file to see if any of it has been downloaded yet
 		// then make the corresponding piecesLeft list
-		
+		t.printResponseMap();
 		PeerManager peerMgr = new PeerManager(ti.piece_length, destFile, Util.getPiecesLeft(ti.piece_hashes), t.getPeerList());
 		peerMgr.start();
 
