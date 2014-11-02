@@ -44,6 +44,12 @@ public class Tracker
 	private final ByteBuffer KEY_PORT = ByteBuffer.wrap(new byte[] {
 			'p', 'o', 'r', 't' });
 	
+	private final ByteBuffer KEY_MIN_INTERVAL = ByteBuffer.wrap(new byte[] {
+			'm', 'i', 'n', ' ', 'i', 'n', 't', 'e', 'r', 'v', 'a', 'l' });
+	
+	private final ByteBuffer KEY_INTERVAL = ByteBuffer.wrap(new byte[] {
+			'i', 'n', 't', 'e', 'r', 'v', 'a', 'l' });
+	
 	public Tracker(TorrentInfo ti, String localId)
 	{
 		this.ti = ti;
@@ -130,10 +136,10 @@ public class Tracker
 		this.peerList = peers;
 	}
 	
-	public void getResponse()
+	public void announce(int lengthLeft, String upload, String download, String event)
 	{
 		
-		int length = ti.file_length;
+		//int length = ti.file_length;
 		String encodedHash="";
 		try 
 		{
@@ -146,19 +152,41 @@ public class Tracker
 		String announceURL = ti.announce_url.toExternalForm();
 		String trackerURL = announceURL + "?info_hash=" + encodedHash
 				+ "&peer_id=" + this.localId
-				+ "&left=" + length
+				+ "&left=" + lengthLeft
 				+ "&port=" + TRACKER_PORT
-				+ "&downloaded=" + "0"
-				+ "&event=" + "started";
+				+ "&uploaded=" + upload
+				+ "&downloaded=" + download
+				+ "&event=" + event;
 		
 		byte[] trackerResponse = Util.sendGetRequest(trackerURL).getBytes();
 		this.response = trackerResponse;
 	}
 	
+	public int getInterval()
+	{
+		Object minInterval = getResponseMap().get(KEY_MIN_INTERVAL);
+		if(minInterval == null)
+		{
+			int interval = (Integer) getResponseMap().get(KEY_INTERVAL);
+			if(interval > 180)
+			{
+				interval = 180;
+				return interval;
+			}
+			return interval/2;
+		}
+		else
+		{
+			int min = (Integer)minInterval;
+			if(min > 180)
+				min = 180;
+			return min;
+		}
+	}
 	
 	private void initTracker()
 	{
-		getResponse();
+		announce(ti.file_length, "0", "0", "started");
 		initResponseMap();
 		initPeerMaps();
 		initPeerList();
