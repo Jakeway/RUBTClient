@@ -12,9 +12,12 @@ public class PeerManager
 	ArrayList<Integer> piecesLeft;
 	ArrayList<Peer> peers;
 	ArrayList<Peer> rutgersPeers;
-
-	public PeerManager(int fileLength, RandomAccessFile destFile, ArrayList<Integer> pieces, ArrayList<Peer> peers)
+	int amountDownloaded = 0;
+	int pieceLength;
+	
+	public PeerManager(int fileLength, int pieceLength, RandomAccessFile destFile, ArrayList<Integer> pieces, ArrayList<Peer> peers)
 	{
+		this.pieceLength = pieceLength;
 		this.saveFile = destFile;
 		this.piecesLeft = pieces;
 		this.peers = peers;
@@ -50,19 +53,10 @@ public class PeerManager
 	public void insertPieceInfo(PieceMessage pm)
 	{
 		int pieceIndex = pm.getPieceIndex();
-	
-		int pieceLength = pm.getPieceSize();
-
-		
-		if (pm.getPieceSize() == 31734)
-		{
-			System.out.println("downloading last piece");
-			System.out.println(pieceIndex);
-		}
-
 		try {
 			saveFile.seek(pieceIndex * pieceLength);
 			saveFile.write(pm.getBlock());
+			amountDownloaded += pm.getBlock().length;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -82,6 +76,12 @@ public class PeerManager
 	public void finishedDownloading()
 	{
 		System.out.println("finished downloading");
+		try {
+			System.out.println("downloaded " + amountDownloaded + " out of " + saveFile.length());
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		// if a peer calls this message, all the pieces have been downloaded
 		/// interrupt all threads
 		// write to file

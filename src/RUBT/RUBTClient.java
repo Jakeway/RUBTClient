@@ -69,8 +69,7 @@ public class RUBTClient
 			e.printStackTrace();
 		}
 		
-		System.out.println(ti.piece_length);
-		PeerManager peerMgr = new PeerManager(ti.file_length, destFile, Util.getPiecesLeft(ti.piece_hashes), t.getPeerList());
+		PeerManager peerMgr = new PeerManager(ti.file_length, ti.piece_length, destFile, Util.getPiecesLeft(ti.piece_hashes), t.getPeerList());
 		peerMgr.startDownloading();
 
 	}

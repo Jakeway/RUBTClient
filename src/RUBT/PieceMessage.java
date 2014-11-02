@@ -27,10 +27,6 @@ public class PieceMessage extends Message {
 		return block;
 	}
 	
-	public int getPieceSize()
-	{
-		return block.length;
-	}
 	
 	
 }
