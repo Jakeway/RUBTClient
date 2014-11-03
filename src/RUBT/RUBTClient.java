@@ -12,12 +12,16 @@ import GivenTools.TorrentInfo;
 public class RUBTClient 
 {
 
+	
+	static String downloadFromIP = "";
+	
 	public static void main(String[] args)
 	{	
 		boolean DEBUG = false;
 		if (args.length == 3)
 		{
 			DEBUG = true;
+			downloadFromIP = args[2];
 		}
 		TorrentInfo ti = null;
 		File torrentFile = null;
@@ -25,7 +29,7 @@ public class RUBTClient
 		
 		if(args.length > 3 || args.length <= 1)
 		{
-			System.err.println("Please enter two arguments.");
+			System.err.println("Can't have more than 3 arguments. Please rerun program.");
 			System.exit(1);
 		}
 		
@@ -67,7 +71,7 @@ public class RUBTClient
 		
 		System.out.println(localID);
 		
-		Tracker tracker = new Tracker(ti, localID, args);
+		Tracker tracker = new Tracker(ti, localID);
 		try 
 		{
 			destFile.setLength(ti.file_length);
@@ -83,11 +87,14 @@ public class RUBTClient
 		{
 			tracker.printResponseMap();
 		}
+		
+		tracker.printResponseMap();
 	
 		
 		PeerManager peerMgr = new PeerManager(ti.piece_length, ti.piece_hashes, ti.file_length,
 				destFile, Util.getPiecesLeft(ti.piece_hashes), tracker, DEBUG);
 		
+
 		peerMgr.start();
 		
 		Scanner sc = new Scanner(System.in);
@@ -105,8 +112,10 @@ public class RUBTClient
 			}
 		}
 		
-		
+	}
 	
-		
+	public static String getDownloadFromIP()
+	{
+		return downloadFromIP;
 	}
 }

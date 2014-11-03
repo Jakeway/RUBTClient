@@ -16,8 +16,6 @@ public class Tracker
 	TorrentInfo ti;
 	String localId;
 	
-	// arguments to program, only useful for debugging purposes
-	String[] args;
 	
 	// response from the Tracker after initial get request
 	private byte[] response;
@@ -53,21 +51,12 @@ public class Tracker
 	private final ByteBuffer KEY_INTERVAL = ByteBuffer.wrap(new byte[] {
 			'i', 'n', 't', 'e', 'r', 'v', 'a', 'l' });
 	
-	/*
-	public Tracker(TorrentInfo ti, String localId)
+
+
+	public Tracker(TorrentInfo ti, String localId) 
 	{
 		this.ti = ti;
 		this.localId = localId;
-		initTracker();
-	}
-	*/
-
-
-	public Tracker(TorrentInfo ti, String localId, String[] args) 
-	{
-		this.ti = ti;
-		this.localId = localId;
-		this.args = args;
 		initTracker();
 	}
 

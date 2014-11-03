@@ -75,10 +75,10 @@ public class PeerManager extends Thread
 	public void startDownloading()
 	{
 		startTime = System.nanoTime();
-		if (DEBUG && tracker.args.length == 3)
+		if (DEBUG)
 		{
-			Peer p = Util.findSpecificPeer(peers, tracker.args[2]);
-			System.out.println("starting specific download from ip " + tracker.args[2]);
+			Peer p = Util.findSpecificPeer(peers, RUBTClient.getDownloadFromIP());
+			System.out.println("starting specific download from ip " + RUBTClient.getDownloadFromIP());
 			p.setPeerManager(this);
 			p.start();
 		}
@@ -284,6 +284,7 @@ public class PeerManager extends Thread
 								System.arraycopy(fileInBytes, rMsg.getByteOffset(), block, 0, rMsg.getBlockLength());
 								PieceMessage pieceMsg = new PieceMessage(pieceIndex, rMsg.getByteOffset(), block);
 								pieceMsg.send(p.getOutputStream());
+								amountUploaded += rMsg.getBlockLength();
 								break;
 							}
 							else
@@ -292,10 +293,10 @@ public class PeerManager extends Thread
 								p.setChoked(true);
 							}
 						}	
-					case BitfieldMessage.BITFIELD_ID:
-						Message.INTERESTED_MSG.send(p.getOutputStream());
-						p.setClientInterested(true);
-						break;
+						case BitfieldMessage.BITFIELD_ID:
+							Message.INTERESTED_MSG.send(p.getOutputStream());
+							p.setClientInterested(true);
+							break;
 				}
 			}
 			catch (InterruptedException e) 
