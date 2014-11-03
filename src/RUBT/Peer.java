@@ -44,6 +44,7 @@ public class Peer extends Thread
 	private boolean choked;
 	
 	private PeerManager pMgr;
+	private boolean clientInterested;
 
 	public Peer(
 			String ip,
@@ -58,6 +59,7 @@ public class Peer extends Thread
 		this.localID = localID;
 		this.peerID = peerID;
 		this.infoHash = infoHash;
+		this.clientInterested = false;
 		this.interested = false;
 		this.choked = true;
 	}
@@ -71,6 +73,36 @@ public class Peer extends Thread
 	public void setPeerManager(PeerManager pMgr)
 	{
 		this.pMgr = pMgr;
+	}
+	
+	public boolean getClientInterested()
+	{
+		return this.clientInterested;
+	}
+	
+	public void setClientInterested(boolean state)
+	{
+		this.clientInterested = state;
+	}
+	
+	public boolean getInterested()
+	{
+		return this.interested;
+	}
+	
+	public void setInterested(boolean state)
+	{
+		this.interested = state;
+	}
+	
+	public boolean getChoked()
+	{
+		return this.choked;
+	}
+	
+	public void setChoked(boolean state)
+	{
+		this.choked = state;
 	}
 	
 	public String getPeerId()
