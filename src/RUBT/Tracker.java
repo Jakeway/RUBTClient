@@ -170,8 +170,9 @@ public class Tracker
 				+ "&peer_id=" + this.localId
 				+ "&left=" + lengthLeft
 				+ "&port=" + TRACKER_PORT
-				+ "&downloaded=" + "0"
-				+ "&event=" + "started";
+				+ "&downloaded=" + download
+				+ "&uploaded=" + upload
+				+ "&event=" + event;
 		System.out.println(trackerURL);
 		
 		byte[] trackerResponse = Util.sendGetRequest(trackerURL).getBytes();

@@ -129,6 +129,7 @@ public class PeerManager extends Thread
 	public void finishedDownloading()
 	{
 
+		tracker.announce(0, "0", Integer.toString(fileLength), "completed");
 		endTime = System.nanoTime();
 		long elapsedTimeSeconds = TimeUnit.SECONDS.convert(endTime-startTime, TimeUnit.NANOSECONDS);
 		int minutes = (int) (elapsedTimeSeconds / 60);

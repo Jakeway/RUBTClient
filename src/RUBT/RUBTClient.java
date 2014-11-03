@@ -14,8 +14,7 @@ public class RUBTClient
 
 	public static void main(String[] args)
 	{	
-		boolean DEBUG = true;
-		
+		boolean DEBUG = false;
 		TorrentInfo ti = null;
 		File torrentFile = null;
 		RandomAccessFile destFile = null;
