@@ -1,5 +1,8 @@
 package RUBT;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 public class BitfieldMessage extends Message 
 {
 
@@ -12,7 +15,7 @@ public class BitfieldMessage extends Message
 
 	public BitfieldMessage(int length, byte[] bitfield)
 	{
-		super(length, BITFIELD_ID);
+		super(1 + length, BITFIELD_ID);
 		this.bitfield = bitfield;
 	}
 	
@@ -21,6 +24,20 @@ public class BitfieldMessage extends Message
 		int bitMask = 1 << bitIndex;
 		return ( bitfield[byteIndex] & bitMask) > 0;
 	}
+	
+	@Override
+	public void sendPayload(DataOutputStream out)
+	{
+		try 
+		{
+			out.write(bitfield);
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	
 	public void iterateBitfield()
 	{

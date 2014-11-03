@@ -52,18 +52,19 @@ public class Message
 		this.id = ID;
 	}
 	
-	public static void send(Message m, DataOutputStream out)
+	public void send(DataOutputStream out)
 	{
 		try 
 		{
 			// write the Message length prefix
-			out.writeInt(m.length);
+			out.writeInt(this.length);
 			// don't need to write the Message ID of the keep alive message
-			if (m.id != KEEP_ALIVE_ID)
+			if (id != KEEP_ALIVE_ID)
 			{
-				out.writeByte(m.id);
-				out.flush();
+				out.writeByte(id);
 			}
+			this.sendPayload(out);
+			out.flush();
 		} 
 		catch (IOException e) 
 		{
@@ -72,6 +73,12 @@ public class Message
 
 	}
 	
+	public void sendPayload(DataOutputStream out) 
+	{
+		// general Message class has no payload
+		// Have, Bitfield, Request, Piece do.
+	}
+
 	public String toString()
 	{
 		
@@ -98,11 +105,10 @@ public class Message
 		}
 	}
 	
-	public static Message receive(DataInputStream in)
+	public static Message receive(DataInputStream in) throws IOException
 	{
 	//	System.out.println("Attempting to retrieve message.");
-		try
-		{
+			
 			int length = in.readInt();
 			byte id = in.readByte();
 			//System.out.println("length of message: " + length);
@@ -161,11 +167,6 @@ public class Message
 				in.readFully(bitfield);
 				return new BitfieldMessage(length, bitfield);
 			}
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
 		return null;
 	}
 	

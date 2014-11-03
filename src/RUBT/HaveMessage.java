@@ -5,26 +5,24 @@ import java.io.IOException;
 
 public class HaveMessage extends Message {
 
-	private int piece;
+	private int pieceIndex;
 	
 	public static final byte HAVE_ID = 4;
 	
 	public static final int HAVE_LENGTH = 5;
 
-	public HaveMessage(int piece)
+	public HaveMessage(int pieceIndex)
 	{
 		super(HAVE_LENGTH, HAVE_ID);
-		this.piece = piece;
+		this.pieceIndex = pieceIndex;
 	}
 	
-	public static void send(Message m, DataOutputStream out)
+	@Override
+	public void sendPayload(DataOutputStream out)
 	{
-		Message.send(m, out);
-		HaveMessage hm = (HaveMessage) m;
 		try
 		{
-			out.writeInt(hm.piece);
-			out.flush();
+			out.writeInt(pieceIndex);
 		} 
 		catch (IOException e) 
 		{

@@ -25,10 +25,6 @@ public class Peer extends Thread
 	
 	private byte[] infoHash;
 	
-	private ByteBuffer[] piece_hashes;
-	
-	private int pieceLength;
-	
 	private byte[] handshake;
 	
 	byte[] response;
@@ -42,33 +38,28 @@ public class Peer extends Thread
 	private boolean verified = false;
 	
 	private final int VALIDATION_ATTEMPTS = 1;
-	
-	private int file_length;
 
+	private boolean interested;
+	
+	private boolean choked;
+	
 	private PeerManager pMgr;
 
-	
-	
-	
-	
 	public Peer(
 			String ip,
 			int port,
 			String peerID,
 			String localID,
-			byte[] infoHash,
-			ByteBuffer[] piece_hashes,
-			int piece_length,
-			int file_length)
+			byte[] infoHash)
 	{
+		
 		this.ip = ip;
 		this.port = port;
 		this.localID = localID;
 		this.peerID = peerID;
 		this.infoHash = infoHash;
-		this.piece_hashes = piece_hashes;
-		this.pieceLength = piece_length;
-		this.file_length = file_length;
+		this.interested = false;
+		this.choked = true;
 	}
 	
 	
@@ -132,6 +123,7 @@ public class Peer extends Thread
 	{
 		try {
 			this.inStream.close();
+			this.outStream.flush();
 			this.outStream.close();
 			this.s.close();
 		} catch (IOException e) {
@@ -168,10 +160,6 @@ public class Peer extends Thread
 		}
 	}
 	
-	public String getPeerID()
-	{
-		return this.peerID;
-	}
 	public String getPeerIP()
 	{
 		return this.ip;
@@ -215,7 +203,8 @@ public class Peer extends Thread
 		}
 		return true;
 	}
-	private void validateHandshake()
+	
+	private boolean validateHandshake()
 	{
 		for (int i = 1; i <= VALIDATION_ATTEMPTS; i++)
 		{
@@ -225,131 +214,54 @@ public class Peer extends Thread
 			if (verifyResponse(response))
 			{
 				verified = true;
-				System.out.println("Verified handshake.");
-				break;
+				return true;
 			}
 		}
 		if (!(verified))
 		{
 			System.err.println("Failed to validate handshake from remote peer after "
 					+ VALIDATION_ATTEMPTS + " times. Try again.");
-			System.exit(1);
 		}
+		return false;
 	}
-	
 
-
-
-	/*
-	 * This method is responsible for getting a PieceMessage, nothing more.
-	 */
-	
-	public PieceMessage getPieceMessage(int pieceNum)
+	public void stopListening()
 	{
-		
-		Message pieceMessage;
-		RequestMessage rm = new RequestMessage(pieceNum, 0, pieceLength);
-		RequestMessage.send(rm, outStream);
-	
-		pieceMessage = Message.receive(inStream);
-	
-		if(pieceMessage != null)
-		{
-			// should be piece message at this point
-			// note: should write an equals method for each message type
-			
-			if (pieceMessage.getID() == PieceMessage.PIECE_ID)
-			{
-				PieceMessage pm = (PieceMessage) pieceMessage;
-				if (Util.verifyHash
-						(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
-				{
-					return pm;
-				}
-				else
-				{
-					System.err.println("Unable to verify piece message");
-					System.exit(1);
-				}
-			}
-		}
-		
-		return null;
+		continueRunning = false;
+		closeConnection();
+		System.out.println("closing peer connection");
 	}
 	
-	
-	public synchronized void getLastMessage()
-	{
-
-		int pieceSize = file_length % pieceLength;
-		System.out.println("bytes left: " + pieceSize);
-		RequestMessage rm = new RequestMessage(piece_hashes.length-1, 0, pieceSize);
-		RequestMessage.send(rm, outStream);
-		Message m = Message.receive(inStream);
-		if (m != null)
-		{
-			if (m.getID() == PieceMessage.PIECE_ID)
-			{
-				PieceMessage pm = (PieceMessage) m;
-				if (Util.verifyHash
-						(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
-				{
-					System.out.println("verified last piece");
-					pMgr.digestPieceMessage(pm);
-				}
-				else
-				{
-					System.err.println("Unable to verify piece message");
-					System.exit(1);
-				}
-			}
-		}
-		else
-		{
-			System.err.println("Received a null message as the last message");
-			System.exit(1);
-		}
-	}
-		
-
-	
-	
+	volatile boolean continueRunning = true;
 	public void run()
 	{
-		generateHandshake();
 		getConnection();
-		validateHandshake();
-		
-		// first message after handshake is bitfield message (not always the case, need to check for this)
-		BitfieldMessage bm = (BitfieldMessage) Message.receive(inStream);
-		
-		System.out.println("Sending interested message");
-		Message.send(Message.INTERESTED_MSG, outStream);
-		Message m = Message.receive(inStream);
-		if(m.toString().equals("UNCHOKE_MSG"))
+		generateHandshake();
+		if (!validateHandshake())
 		{
-			System.out.println("Received unchoked message");
-			System.out.println("Starting download... Please wait patiently.");
+			closeConnection();
+		}
 			
-			while(pMgr.piecesLeft.size() != 0) 
+		else
+		{
+			BitfieldMessage bm =  new BitfieldMessage(pMgr.getBitfieldLength(), pMgr.getBitfield());
+			bm.send(outStream);
+			
+			while (continueRunning)
 			{
-				int random = Util.getRandomInt(pMgr.piecesLeft.size());
-				int pieceToGet = pMgr.piecesLeft.get(random);
-				PieceMessage pieceMessage = getPieceMessage(pieceToGet);
-				if (pieceMessage != null)
+				try
 				{
-					pMgr.digestPieceMessage(pieceMessage);
+					Message m = Message.receive(inStream);
+					pMgr.acceptMessage(m, this);
+				}
+				catch (IOException e)
+				{
+					continueRunning = false;
 				}
 			}
-			// at this point, there is only one piece left to get. peers need to fight to death to determine who gets to download last piece
-			System.out.println("downloading last message");
-			getLastMessage();
-			// tell the peer manager we have downloaded last piece, he's going to be so proud of us
-			pMgr.finishedDownloading();
-			
 		}
-		closeConnection();
 	}
-
 }
+
+
 

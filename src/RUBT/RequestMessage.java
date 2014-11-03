@@ -22,16 +22,31 @@ public class RequestMessage extends Message {
 		
 	}
 	
-	public static void send(Message m, DataOutputStream out)
+	public int getPieceIndex()
 	{
-		Message.send(m, out);
-		RequestMessage rm = (RequestMessage) m;
+		return pieceIndex;
+	}
+	
+	public int getBlockLength()
+	{
+		return blockLength;
+	}
+	
+	public int getByteOffset()
+	{
+		return byteOffset;
+	}
+	
+	
+	
+	@Override
+	public void sendPayload(DataOutputStream out) 
+	{
 		try
 		{
-			out.writeInt(rm.pieceIndex);
-			out.writeInt(rm.byteOffset);
-			out.writeInt(rm.blockLength);
-			out.flush();
+			out.writeInt(pieceIndex);
+			out.writeInt(byteOffset);
+			out.writeInt(blockLength);
 		} 
 		catch (IOException e) 
 		{

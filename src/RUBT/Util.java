@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -189,10 +190,7 @@ public class Util
 	{
 		ArrayList<Integer> pieces = new ArrayList<Integer>();
 		
-		// length - 1, because the last piece is a bit funky (might have different pieceSize than all other pieces)
-		// meaning that we will deal with that last piece for the end
-		
-		for(int i = 0; i < piece_hashes.length-1; i++)
+		for(int i = 0; i < piece_hashes.length; i++)
 		{
 			pieces.add(i);
 		}
@@ -219,5 +217,21 @@ public class Util
 		{
 			return false;
 		}
+	}
+	
+	public static byte[] fileToBytes(RandomAccessFile raf)
+	{
+		byte[] bytes = null;
+		try 
+		{
+			bytes = new byte[(int) raf.length()];
+			raf.readFully(bytes);
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+		return bytes;
+		
 	}
 }
