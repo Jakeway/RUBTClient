@@ -16,6 +16,9 @@ public class Tracker
 	TorrentInfo ti;
 	String localId;
 	
+	// arguments to program, only useful for debugging purposes
+	String[] args;
+	
 	// response from the Tracker after initial get request
 	private byte[] response;
 	
@@ -50,13 +53,26 @@ public class Tracker
 	private final ByteBuffer KEY_INTERVAL = ByteBuffer.wrap(new byte[] {
 			'i', 'n', 't', 'e', 'r', 'v', 'a', 'l' });
 	
+	/*
 	public Tracker(TorrentInfo ti, String localId)
 	{
 		this.ti = ti;
 		this.localId = localId;
 		initTracker();
 	}
-	
+	*/
+
+
+	public Tracker(TorrentInfo ti, String localId, String[] args) 
+	{
+		this.ti = ti;
+		this.localId = localId;
+		this.args = args;
+		initTracker();
+	}
+
+
+
 	// returns the decoded map response from Tracker
 	public HashMap<ByteBuffer, Object> getResponseMap()
 	{
@@ -154,9 +170,9 @@ public class Tracker
 				+ "&peer_id=" + this.localId
 				+ "&left=" + lengthLeft
 				+ "&port=" + TRACKER_PORT
-				+ "&uploaded=" + upload
-				+ "&downloaded=" + download
-				+ "&event=" + event;
+				+ "&downloaded=" + "0"
+				+ "&event=" + "started";
+		System.out.println(trackerURL);
 		
 		byte[] trackerResponse = Util.sendGetRequest(trackerURL).getBytes();
 		this.response = trackerResponse;

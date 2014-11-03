@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Map;
 import java.util.Scanner;
 
 import GivenTools.TorrentInfo;
@@ -15,7 +14,7 @@ public class RUBTClient
 
 	public static void main(String[] args)
 	{	
-		boolean DEBUG = false;
+		boolean DEBUG = true;
 		
 		TorrentInfo ti = null;
 		File torrentFile = null;
@@ -27,8 +26,10 @@ public class RUBTClient
 			System.exit(1);
 		}
 		
+		
 		if (DEBUG)
 		{
+
 			torrentFile = new File("Phase2.torrent");
 			try 
 			{
@@ -60,8 +61,10 @@ public class RUBTClient
 		
 		ti = Util.getTorrentInfo(torrentFile);
 		String localID = Util.getRandomPeerId();
-		Tracker tracker = new Tracker(ti, localID);
 		
+		System.out.println(localID);
+		
+		Tracker tracker = new Tracker(ti, localID, args);
 		try 
 		{
 			destFile.setLength(ti.file_length);
@@ -73,9 +76,14 @@ public class RUBTClient
 		
 		// need method that reads in the file to see if any of it has been downloaded yet
 		// then make the corresponding piecesLeft list
+		if (DEBUG)
+		{
+			tracker.printResponseMap();
+		}
+	
 		
 		PeerManager peerMgr = new PeerManager(ti.piece_length, ti.piece_hashes, ti.file_length,
-				destFile, Util.getPiecesLeft(ti.piece_hashes), tracker);
+				destFile, Util.getPiecesLeft(ti.piece_hashes), tracker, DEBUG);
 		
 		peerMgr.start();
 		

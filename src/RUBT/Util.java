@@ -164,6 +164,21 @@ public class Util
 	}
 	
 	
+	public static Peer findSpecificPeer(ArrayList<Peer> peers, String ip)
+	{
+		for (Peer p : peers)
+		{
+			if (p.getIP().equals(ip))
+			{
+				return p;
+			}
+		}
+		return null;
+	}
+	
+	
+	
+	
 	//method which finds all of the rutgers peers
 	public static ArrayList<Peer> findRutgersPeers(ArrayList<Peer> peers)
 	{

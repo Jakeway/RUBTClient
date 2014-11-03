@@ -26,6 +26,7 @@ public class PeerManager extends Thread
 	private int fileLength;
 	private LinkedBlockingQueue<Job> jobs;
 	private ByteBuffer[] piece_hashes;
+	private boolean DEBUG;
 	
 	public PeerManager(
 			int pieceLength,
@@ -33,7 +34,8 @@ public class PeerManager extends Thread
 			int fileLength,
 			RandomAccessFile destFile,
 			ArrayList<Integer> pieces,
-			Tracker t)
+			Tracker t,
+			boolean DEBUG)
 	{
 		this.pieceLength = pieceLength;
 		this.piece_hashes = piece_hashes;
@@ -44,6 +46,7 @@ public class PeerManager extends Thread
 		this.peers = t.getPeerList();
 		this.numPieces = piece_hashes.length;
 		this.rutgersPeers = Util.findRutgersPeers(peers);
+		this.DEBUG = DEBUG;
 		bitfield = new byte[getBitfieldLength()];
 		amountLeft = fileLength;
 		jobs = new LinkedBlockingQueue<Job>();
@@ -73,11 +76,21 @@ public class PeerManager extends Thread
 	public void startDownloading()
 	{
 		startTime = System.nanoTime();
-		for (Peer p : rutgersPeers)
+		if (DEBUG && tracker.args.length == 3)
 		{
-			System.out.println("starting a peer");
+			Peer p = Util.findSpecificPeer(peers, tracker.args[2]);
+			System.out.println("starting specific download from ip " + tracker.args[2]);
 			p.setPeerManager(this);
 			p.start();
+		}
+		else
+		{
+			for (Peer p : rutgersPeers)
+			{
+				System.out.println("starting a peer");
+				p.setPeerManager(this);
+				p.start();
+			}
 		}
 	}
 	
@@ -207,14 +220,11 @@ public class PeerManager extends Thread
 					
 					case Message.INTERESTED_ID:
 						// set peer to be in an interested state
-						p.setInterested(true);
 						Message.UNCHOKE_MSG.send(p.getOutputStream());
-						p.setChoked(false);
 						break;
 					
 					case Message.UNINTERESTED_ID:
 						// set peer to be in an uninterested state
-						p.setInterested(false);
 						Message.KEEP_ALIVE_MSG.send(p.getOutputStream());
 						break;
 						
@@ -223,15 +233,9 @@ public class PeerManager extends Thread
 						break;
 					
 					case Message.UNCHOKE_ID:
+						
 						// if peer isn't choked and is interested, send piece request
-						if(p.getClientInterested())
-						{
-							generateRequestMessage(p);
-						}
-						else
-						{
-							Message.KEEP_ALIVE_MSG.send(p.getOutputStream());
-						}
+						generateRequestMessage(p);
 						// pick a piece, request it.
 						// else, just send a keep alive
 						break;
@@ -239,7 +243,6 @@ public class PeerManager extends Thread
 					case HaveMessage.HAVE_ID:
 						// update peers bitfield array
 						// we are downloading only from rutgers peers for now
-						//don't worry about this message for now
 						break;
 					
 					case PieceMessage.PIECE_ID:
@@ -262,8 +265,7 @@ public class PeerManager extends Thread
 						RequestMessage rMsg = (RequestMessage) msg;
 						int pieceIndex = rMsg.getPieceIndex();
 						// if this peer is interested and unchoked
-						if(!(p.getChoked()) && p.getInterested())
-						{
+							
 							if (piecesLeft.contains((Object) pieceIndex))
 							{
 								byte[] block = new byte[rMsg.getBlockLength()];
@@ -276,12 +278,10 @@ public class PeerManager extends Thread
 							else
 							{
 								Message.CHOKE_MSG.send(p.getOutputStream());
-								p.setChoked(true);
 							}
-						}	
+							
 					case BitfieldMessage.BITFIELD_ID:
 						Message.INTERESTED_MSG.send(p.getOutputStream());
-						p.setClientInterested(true);
 						break;
 				}
 			}
