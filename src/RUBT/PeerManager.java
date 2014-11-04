@@ -298,6 +298,7 @@ public class PeerManager extends Thread
 							}
 						}	
 						case BitfieldMessage.BITFIELD_ID:
+							// NEED TO CHECK BITFIELD MESSAGE, IF WE ALREADY DOWNLOADED THE WHOLE FILE, DON'T SEND INTERESTED MSG
 							Message.INTERESTED_MSG.send(p.getOutputStream());
 							p.setClientInterested(true);
 							break;

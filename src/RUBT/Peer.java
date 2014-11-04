@@ -11,10 +11,12 @@ import java.nio.ByteBuffer;
 
 public class Peer extends Thread
 {
-
+	
 	private final static ByteBuffer HANDSHAKE_HEADER = ByteBuffer.wrap(new byte[] { 
 							'B','i','t','T','o','r','r','e','n','t',' ',
 							'p','r','o','t','o','c','o','l'});
+	
+	
 	private String ip;
 	
 	private int port;
@@ -53,6 +55,9 @@ public class Peer extends Thread
 		this.clientInterested = false;
 		this.interested = false;
 		this.choked = true;
+		
+		System.out.println("peer id: " + peerId);
+		System.out.println("local client id: " + localId);
 	}
 	
 	public Peer(String ip, int port, String localID, Socket s)
@@ -64,6 +69,7 @@ public class Peer extends Thread
 		this.interested = false;
 		this.choked = true;
 		this.s = s;
+		System.out.println("local client id: " + localId);
 	}
 	
 	
@@ -128,7 +134,7 @@ public class Peer extends Thread
 		byte[] infoHash = pMgr.getIndexHash();
 		byte[] handShake = new byte[68];
 		handShake[0] = 19;
-		HANDSHAKE_HEADER.get(handShake, 1, HANDSHAKE_HEADER.remaining());
+		System.arraycopy(HANDSHAKE_HEADER.array(), 0, handShake, 1, HANDSHAKE_HEADER.array().length);
 		System.arraycopy(infoHash, 0, handShake, 28, infoHash.length);
 		Util.addStringToByteArray(handShake, localId, 48);
 		this.handshake = handShake;
@@ -162,7 +168,11 @@ public class Peer extends Thread
 		return handshakeResponse;
 	}
 	
-	private boolean verifyResponse(byte[] peerHandshake)
+	
+	
+
+	// new peer is set to true if this peer has connected to us and we don't know its peer id
+	private boolean verifyResponse(byte[] peerHandshake, boolean newPeer)
 	{
 		if(peerHandshake == null)
 		{
@@ -186,37 +196,28 @@ public class Peer extends Thread
 				return false;
 			}
 		}
-	
-		// check the peerID
-		byte[] peerIdArray = this.peerId.getBytes();
-		for (int i = 48; i < peerHandshake.length; i++)
+
+		if (!newPeer)
 		{
-			
-			if (peerHandshake[i] != peerIdArray[i-48])
+			// check the peerID
+			byte[] peerIdArray = this.peerId.getBytes();
+			for (int i = 48; i < peerHandshake.length; i++)
 			{
-				return false;
+				if (peerHandshake[i] != peerIdArray[i-48])
+				{
+					return false;
+				}
 			}
+			return true;
 		}
-		return true;
-	}
-	
-	// sends handshake, and validates response
-	private boolean sendAndValidateHandshake()
-	{
-		for (int i = 1; i <= VALIDATION_ATTEMPTS; i++)
+		else
+		// this response checks out, set the new peers peer id to the peer id it sent in handshake
 		{
-			System.out.println("Attempting to validate peer response - Attempt: " + i);
-			sendHandshake();
-			System.out.println("handshake sent");
-			byte[] handshakeResponse = getHandshakeResponse();
-			if (verifyResponse(handshakeResponse))
-			{
-				return true;
-			}
+			System.out.println("parsing peer id");
+			parsePeerId(peerHandshake);
+			return true;
 		}
-		System.err.println("Failed to validate handshake from remote peer after "
-					+ VALIDATION_ATTEMPTS + " times. Try again.");
-		return false;
+
 	}
 	
 	private void parsePeerId(byte[] handshakeResponse) 
@@ -224,7 +225,6 @@ public class Peer extends Thread
 		byte[] peerId = new byte[20];
 		for (int i = 48; i < handshakeResponse.length; i++)
 		{
-			
 			peerId[i-48] = handshakeResponse[i];
 		}
 		try 
@@ -238,6 +238,25 @@ public class Peer extends Thread
 	}
 	
 	
+	// sends handshake, and validates response
+	// newPeer is set to true if this is a peer connecting to us to download
+	private boolean sendAndValidateHandshake(boolean newPeer)
+	{
+		for (int i = 1; i <= VALIDATION_ATTEMPTS; i++)
+		{
+			System.out.println("Attempting to validate peer response - Attempt: " + i);
+			sendHandshake();
+			System.out.println("handshake sent");
+			byte[] handshakeResponse = getHandshakeResponse();
+			if (verifyResponse(handshakeResponse, newPeer))
+			{
+				return true;
+			}
+		}
+		System.err.println("Failed to validate handshake from remote peer after "
+					+ VALIDATION_ATTEMPTS + " times. Try again.");
+		return false;
+	}
 	
 	private void getConnection()
 	{
@@ -304,43 +323,46 @@ public class Peer extends Thread
 	private volatile boolean continueRunning = true;
 	public void run()
 	{
-		
+		boolean newPeer;
 		generateHandshake();
+		System.out.println("printing generated handshake");
+		printResponse(handshake);
 		byte[] handshakeResponse;
 		// this happens when we are the ones who want to download
 		if (s == null)
 		{
+			newPeer = false;
 			System.out.println("getting connection");
 			getConnection();
-			if (!sendAndValidateHandshake())
+			if (!sendAndValidateHandshake(newPeer))
 			{
 				closeConnection();
 				return;
 			}
-			System.out.println("sent and validated handshake");
+			System.out.println("validated handshake");
 		}
 		// happens when a peer has connected to us
 		else
 		{
+			newPeer = true;
 			System.out.println("getting streams");
 			getStreams();
 			handshakeResponse = getHandshakeResponse();
 			System.out.println("about to verify handshake");
-			if (verifyResponse(handshakeResponse))
-			{
-				parsePeerId(handshakeResponse);
-				System.out.println("verified and parsed peer id from handshake");
-			}
-			
-			else
+			this.printResponse(handshakeResponse);
+			if (!verifyResponse(handshakeResponse, newPeer))
 			{
 				System.out.println("couldnt verify handshake");
+				closeConnection();
 				return;
 			}
-				
+			System.out.println("verified handshake");
+			sendHandshake();	
 		}
-	
+		
+		
 		BitfieldMessage bm =  new BitfieldMessage(pMgr.getBitfieldLength(), pMgr.getBitfield());
+		System.out.println("sent bitfield message");
 		bm.send(outStream);
 		
 		while (continueRunning)

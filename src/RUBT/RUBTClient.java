@@ -69,7 +69,11 @@ public class RUBTClient
 		ti = Util.getTorrentInfo(torrentFile);
 		
 		String localID = Util.getRandomPeerId();
-
+		if (!DEBUG)
+		{
+			localID = "DEBUGUPLOAD123456789";
+		}
+		
 		Tracker tracker = new Tracker(ti, localID);
 		try 
 		{
@@ -91,6 +95,8 @@ public class RUBTClient
 			uMgr = new UploadManager(peerMgr, localID);
 			uMgr.start();
 		}
+		
+	//	System.out.println(localID);
 		
 		Scanner sc = new Scanner(System.in);
 		System.out.println("Type \'quit\' to quit");
