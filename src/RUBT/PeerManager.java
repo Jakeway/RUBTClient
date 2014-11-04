@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import GivenTools.TorrentInfo;
+
 public class PeerManager extends Thread
 {
 	private RandomAccessFile saveFile;
@@ -27,32 +29,29 @@ public class PeerManager extends Thread
 	private LinkedBlockingQueue<Job> jobs;
 	private ByteBuffer[] piece_hashes;
 	private boolean DEBUG;
+	private byte[] info_hash;
 	
-	public PeerManager(
-			int pieceLength,
-			ByteBuffer[] piece_hashes,
-			int fileLength,
-			RandomAccessFile destFile,
-			ArrayList<Integer> pieces,
-			Tracker t,
-			boolean DEBUG)
+	public PeerManager(TorrentInfo ti, RandomAccessFile destFile,
+			Tracker tracker, boolean DEBUG) 
 	{
-		this.DEBUG = DEBUG;
-		this.pieceLength = pieceLength;
-		this.piece_hashes = piece_hashes;
+		this.info_hash = ti.info_hash.array();
+		this.pieceLength = ti.piece_length;
+		this.piece_hashes = ti.piece_hashes;
 		this.saveFile = destFile;
-		this.piecesLeft = pieces;
-		this.fileLength = fileLength;
-		this.tracker = t;
-		this.peers = t.getPeerList();
 		this.numPieces = piece_hashes.length;
+		this.piecesLeft = Util.getPiecesLeft(numPieces);
+		this.fileLength = ti.file_length;
+		this.tracker = tracker;
+		this.peers = tracker.getPeerList();
 		this.rutgersPeers = Util.findRutgersPeers(peers);
+		this.DEBUG = DEBUG;
 		bitfield = new byte[getBitfieldLength()];
 		amountLeft = fileLength;
 		jobs = new LinkedBlockingQueue<Job>();
 		printPeers();
+		
 	}
-	
+
 	private void printPeers()
 	{
 		for (Peer p : rutgersPeers)
@@ -60,7 +59,6 @@ public class PeerManager extends Thread
 			System.out.println(p.getIP());
 		}
 	}
-	
 	
 	public int getBitfieldLength()
 	{
@@ -72,12 +70,23 @@ public class PeerManager extends Thread
 		return bitfield;
 	}
 	
+	public ArrayList<Peer> getPeers()
+	{
+		return peers;
+	}
+	
+	public byte[] getIndexHash()
+	{
+		return this.info_hash;
+	}
+	
 	public void startDownloading()
 	{
 		startTime = System.nanoTime();
+		
 		if (DEBUG)
 		{
-			Peer p = Util.findSpecificPeer(peers, RUBTClient.getDownloadFromIP());
+			Peer p = new Peer(RUBTClient.getDownloadFromIP(), 6881, "DEBUGUPLOAD123456789", tracker.localId);
 			System.out.println("starting specific download from ip " + RUBTClient.getDownloadFromIP());
 			p.setPeerManager(this);
 			p.start();
@@ -137,9 +146,6 @@ public class PeerManager extends Thread
 		
 		System.out.println("took " + minutes + " minutes and " + seconds + " seconds to download file");
 		
-		// need to tell the tracker that we have finished downloading
-		// if a peer calls this message, all the pieces have been downloaded
-		
 		try 
 		{
 			saveFile.close();	
@@ -153,6 +159,7 @@ public class PeerManager extends Thread
 			e.printStackTrace();
 		}
 	}
+
 	
 	
 	public void acceptMessage(Message m, Peer p)
@@ -173,9 +180,8 @@ public class PeerManager extends Thread
 	{
 		int random = Util.getRandomInt(piecesLeft.size());
 		int pieceToGet = piecesLeft.get(random);
-		// getting the last piece
 		int length;
-		if (pieceToGet == numPieces-1)
+		if (pieceToGet == numPieces-1) // getting the last piece
 		{
 			 length = fileLength % pieceLength;
 		}
@@ -200,9 +206,7 @@ public class PeerManager extends Thread
 	volatile boolean keepRunning = true;
 	public void run()
 	{
-		
 		startDownloading();
-		
 		
 		while (keepRunning)
 		{

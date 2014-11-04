@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -185,7 +184,7 @@ public class Util
 		ArrayList<Peer> rutgersPeers = new ArrayList<Peer>();
 		for(Peer p : peers)
 		{
-			String pIP = p.getPeerIP();
+			String pIP = p.getIP();
 			// pIP.equals("128.6.171.130") currently down
 			if(pIP.equals("128.6.171.131") && p.getPeerId().contains("-AZ5400-"))
 			{
@@ -201,11 +200,11 @@ public class Util
 		return rutgersPeers;
 	}
 	
-	public static ArrayList<Integer> getPiecesLeft(ByteBuffer[] piece_hashes)
+	public static ArrayList<Integer> getPiecesLeft(int numPieces)
 	{
 		ArrayList<Integer> pieces = new ArrayList<Integer>();
 		
-		for(int i = 0; i < piece_hashes.length; i++)
+		for(int i = 0; i < numPieces; i++)
 		{
 			pieces.add(i);
 		}

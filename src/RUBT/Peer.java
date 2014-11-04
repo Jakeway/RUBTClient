@@ -19,49 +19,51 @@ public class Peer extends Thread
 	
 	private int port;
 	
-	private String localID;
+	private String peerId;
 	
-	private String peerID;
+	private String localId;
 	
-	private byte[] infoHash;
+	private final int VALIDATION_ATTEMPTS = 1;
 	
 	private byte[] handshake;
-	
-	byte[] response;
 	
 	private Socket s;
 	
 	private DataOutputStream outStream;
 	
 	private DataInputStream inStream;
-	
-	private boolean verified = false;
-	
-	private final int VALIDATION_ATTEMPTS = 1;
 
 	private boolean interested;
 	
 	private boolean choked;
 	
 	private PeerManager pMgr;
+	
 	private boolean clientInterested;
 
-	public Peer(
-			String ip,
+	public Peer(String ip,
 			int port,
 			String peerID,
-			String localID,
-			byte[] infoHash)
+			String localID)
 	{
-		
 		this.ip = ip;
 		this.port = port;
-		this.localID = localID;
-		this.peerID = peerID;
-		this.infoHash = infoHash;
+		this.localId = localID;
+		this.peerId = peerID;
 		this.clientInterested = false;
 		this.interested = false;
 		this.choked = true;
+	}
+	
+	public Peer(String ip, int port, String localID, Socket s)
+	{
+		this.ip = ip;
+		this.port = port;
+		this.localId = localID;
+		this.clientInterested = false;
+		this.interested = false;
+		this.choked = true;
+		this.s = s;
 	}
 	
 	
@@ -95,6 +97,11 @@ public class Peer extends Thread
 		this.interested = state;
 	}
 	
+	public void setPeerId(String peerId)
+	{
+		this.peerId = peerId;
+	}
+	
 	public boolean getChoked()
 	{
 		return this.choked;
@@ -107,7 +114,7 @@ public class Peer extends Thread
 	
 	public String getPeerId()
 	{
-		return peerID;
+		return peerId;
 	}
 	
 	public DataOutputStream getOutputStream()
@@ -118,88 +125,45 @@ public class Peer extends Thread
 	
 	private void generateHandshake()
 	{
+		byte[] infoHash = pMgr.getIndexHash();
 		byte[] handShake = new byte[68];
 		handShake[0] = 19;
 		HANDSHAKE_HEADER.get(handShake, 1, HANDSHAKE_HEADER.remaining());
 		System.arraycopy(infoHash, 0, handShake, 28, infoHash.length);
-		Util.addStringToByteArray(handShake, localID, 48);
+		Util.addStringToByteArray(handShake, localId, 48);
 		this.handshake = handShake;
 	}
 	
-	private void getConnection()
-	{
-		Socket peerSocket = null;
-		try {
-			peerSocket = new Socket(ip, port);
-			this.s = peerSocket;
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (SocketException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		try {
-			DataOutputStream dos = new DataOutputStream(peerSocket.getOutputStream());
-			DataInputStream dis = new DataInputStream(peerSocket.getInputStream());
-			this.inStream = dis;
-			this.outStream = dos;
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 	
-	public void closeConnection()
+	private void sendHandshake()
 	{
-		try {
-			this.inStream.close();
-			this.outStream.flush();
-			this.outStream.close();
-			this.s.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
-	private void getPeerResponse()
-	{
-		byte[] handshakeResponse = new byte[68];
 		try 
 		{
 			outStream.write(handshake);
 			outStream.flush();
-			inStream.readFully(handshakeResponse);
 		}
 		catch (IOException e) 
 		{
 			e.printStackTrace();
 		}
-		this.response = handshakeResponse;
 	}
 	
-	public void printResponse()
+	private byte[] getHandshakeResponse()
 	{
+		byte[] handshakeResponse = new byte[68];
 		try 
 		{
-			System.out.println(new String(response, "UTF-8"));
+			inStream.readFully(handshakeResponse);
 		} 
-		catch (UnsupportedEncodingException e)
+		catch (IOException e) 
 		{
 			e.printStackTrace();
 		}
+		return handshakeResponse;
 	}
 	
-	public String getPeerIP()
+	private boolean verifyResponse(byte[] peerHandshake)
 	{
-		return this.ip;
-	}
-	
-	private Boolean verifyResponse(byte[] peerHandshake)
-	{
-		
 		if(peerHandshake == null)
 		{
 			return false;
@@ -224,7 +188,7 @@ public class Peer extends Thread
 		}
 	
 		// check the peerID
-		byte[] peerIdArray = this.peerID.getBytes();
+		byte[] peerIdArray = this.peerId.getBytes();
 		for (int i = 48; i < peerHandshake.length; i++)
 		{
 			
@@ -236,25 +200,85 @@ public class Peer extends Thread
 		return true;
 	}
 	
-	private boolean validateHandshake()
+	// sends handshake, and validates response
+	private boolean sendAndValidateHandshake()
 	{
 		for (int i = 1; i <= VALIDATION_ATTEMPTS; i++)
 		{
 			System.out.println("Attempting to validate peer response - Attempt: " + i);
-			getPeerResponse();
-			// might be able to make this method not take in any params
-			if (verifyResponse(response))
+			sendHandshake();
+			System.out.println("handshake sent");
+			byte[] handshakeResponse = getHandshakeResponse();
+			if (verifyResponse(handshakeResponse))
 			{
-				verified = true;
 				return true;
 			}
 		}
-		if (!(verified))
-		{
-			System.err.println("Failed to validate handshake from remote peer after "
+		System.err.println("Failed to validate handshake from remote peer after "
 					+ VALIDATION_ATTEMPTS + " times. Try again.");
-		}
 		return false;
+	}
+	
+	private void parsePeerId(byte[] handshakeResponse) 
+	{
+		byte[] peerId = new byte[20];
+		for (int i = 48; i < handshakeResponse.length; i++)
+		{
+			
+			peerId[i-48] = handshakeResponse[i];
+		}
+		try 
+		{
+			setPeerId(new String(peerId, "UTF-8"));
+		} 
+		catch (UnsupportedEncodingException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
+	private void getConnection()
+	{
+		Socket peerSocket = null;
+		try {
+			peerSocket = new Socket(ip, port);
+			this.s = peerSocket;
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (SocketException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		getStreams();
+	}
+	
+	public void closeConnection()
+	{
+		try {
+			this.inStream.close();
+			this.outStream.flush();
+			this.outStream.close();
+			this.s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	public void printResponse(byte[] handshakeResponse)
+	{
+		try 
+		{
+			System.out.println(new String(handshakeResponse, "UTF-8"));
+		} 
+		catch (UnsupportedEncodingException e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	public void stopListening()
@@ -264,36 +288,76 @@ public class Peer extends Thread
 		System.out.println("closing peer connection");
 	}
 	
-	volatile boolean continueRunning = true;
+	public void getStreams()
+	{
+		try {
+			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+			DataInputStream dis = new DataInputStream(s.getInputStream());
+			this.inStream = dis;
+			this.outStream = dos;
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private volatile boolean continueRunning = true;
 	public void run()
 	{
-		getConnection();
+		
 		generateHandshake();
-		if (!validateHandshake())
+		byte[] handshakeResponse;
+		// this happens when we are the ones who want to download
+		if (s == null)
 		{
-			closeConnection();
+			System.out.println("getting connection");
+			getConnection();
+			if (!sendAndValidateHandshake())
+			{
+				closeConnection();
+				return;
+			}
+			System.out.println("sent and validated handshake");
 		}
-			
+		// happens when a peer has connected to us
 		else
 		{
-			BitfieldMessage bm =  new BitfieldMessage(pMgr.getBitfieldLength(), pMgr.getBitfield());
-			bm.send(outStream);
-			
-			while (continueRunning)
+			System.out.println("getting streams");
+			getStreams();
+			handshakeResponse = getHandshakeResponse();
+			System.out.println("about to verify handshake");
+			if (verifyResponse(handshakeResponse))
 			{
-				try
-				{
-					Message m = Message.receive(inStream);
-					pMgr.acceptMessage(m, this);
-				}
-				catch (IOException e)
-				{
-					continueRunning = false;
-				}
+				parsePeerId(handshakeResponse);
+				System.out.println("verified and parsed peer id from handshake");
+			}
+			
+			else
+			{
+				System.out.println("couldnt verify handshake");
+				return;
+			}
+				
+		}
+	
+		BitfieldMessage bm =  new BitfieldMessage(pMgr.getBitfieldLength(), pMgr.getBitfield());
+		bm.send(outStream);
+		
+		while (continueRunning)
+		{
+			try
+			{
+				Message m = Message.receive(inStream);
+				pMgr.acceptMessage(m, this);
+			}
+			catch (IOException e)
+			{
+				continueRunning = false;
 			}
 		}
 	}
 }
+
 
 
 
