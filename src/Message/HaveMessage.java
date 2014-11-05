@@ -17,6 +17,11 @@ public class HaveMessage extends Message {
 		this.pieceIndex = pieceIndex;
 	}
 	
+	public int getPieceIndex()
+	{
+		return this.pieceIndex;
+	}
+	
 	@Override
 	protected void sendPayload(DataOutputStream out)
 	{
