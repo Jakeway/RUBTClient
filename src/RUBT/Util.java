@@ -187,17 +187,16 @@ public class Util
 		for(Peer p : peers)
 		{
 			String pIP = p.getIP();
-			// pIP.equals("128.6.171.130") currently down
 			if(pIP.equals("128.6.171.131") && p.getPeerId().contains("-AZ5400-"))
 			{
 				rutgersPeers.add(p);
 			}
-		/*	
-			if (pIP.equals("128.6.171.130"))
+			
+			else if (pIP.equals("128.6.171.130"))
 			{
 				rutgersPeers.add(p);
 			}
-			*/
+			
 		}
 		return rutgersPeers;
 	}

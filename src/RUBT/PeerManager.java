@@ -202,10 +202,8 @@ public class PeerManager extends Thread
 	public void generateRequestMessage(Peer p)
 	{
 		//need to check the peers bitfiled and see what pieces it has and then request a piece based on that
-		//int random = Util.getRandomInt(piecesLeft.size());
-		//int pieceToGet = piecesLeft.get(random);
 		int random = Util.getRandomInt(piecesLeft.size());
-		while(!(piecesLeft.contains((Object)random)) && !(p.getPeerPieces().contains((Object)random)))
+		while(!(piecesLeft.contains((Object)random)) && (!p.getPeerPieces().contains((Object)random)))
 		{
 			random = Util.getRandomInt(piecesLeft.size());
 		}
@@ -312,18 +310,22 @@ public class PeerManager extends Thread
 					
 					case PieceMessage.PIECE_ID:
 						
-						PieceMessage pm = (PieceMessage) msg;
-						if (Util.verifyHash(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+						// only evaluate this piece if we were previously interested and unchoked
+						if (p.getClientInterested() && !p.getClientChoked())
 						{
-							digestPieceMessage(pm);
-						}
-						if ( piecesLeft.size() > 0)
-						{
-							generateRequestMessage(p);
-						}
-						else
-						{
-							finishedDownloading();
+							PieceMessage pm = (PieceMessage) msg;
+							if (Util.verifyHash(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
+							{
+								digestPieceMessage(pm);
+							}
+							if ( piecesLeft.size() > 0)
+							{
+								generateRequestMessage(p);
+							}
+							else
+							{
+								finishedDownloading();
+							}
 						}
 						break;
 					
@@ -459,10 +461,15 @@ public class PeerManager extends Thread
 		return true;
 	}
 	
-	private void removePeer(Peer p)
+	public void removePeer(Peer p)
 	{
 		rutgersPeers.remove(p);
 		p.stopListening();
+	}
+	
+	public List<Peer> getRutgersPeers()
+	{
+		return this.rutgersPeers;
 	}
 }
 	

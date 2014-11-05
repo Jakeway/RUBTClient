@@ -53,7 +53,7 @@ public class UploadManager extends Thread
 				String ip = remoteAddress.substring(1, colonIndex);
 				int port = peerSocket.getPort();
 				System.out.println("received connection from: " + ip + ":" + port);
-				if (pMgr.getPeers().contains(Util.findSpecificPeer(pMgr.getPeers(), ip)))
+				if (pMgr.getPeers().contains(Util.findSpecificPeer(pMgr.getRutgersPeers(), ip)))
 				{
 					System.out.println("closing connection from " + ip + ":" + port);
 					peerSocket.close();

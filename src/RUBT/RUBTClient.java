@@ -69,6 +69,8 @@ public class RUBTClient
 			e.printStackTrace();
 		}
 		
+		System.out.println("Type \'quit\' at anytime to stop program");
+		
 		PeerManager peerMgr = new PeerManager(ti, destFile, tracker, DEBUG);
 		peerMgr.start();
 		
@@ -84,7 +86,6 @@ public class RUBTClient
 	//	System.out.println(localID);
 		
 		Scanner sc = new Scanner(System.in);
-		System.out.println("Type \'quit\' to quit");
 		String input = "";
 		while (sc.hasNext())
 		{

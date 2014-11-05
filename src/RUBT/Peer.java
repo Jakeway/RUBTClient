@@ -200,7 +200,8 @@ public class Peer extends Thread
 		} 
 		catch (IOException e) 
 		{
-			e.printStackTrace();
+			return null;
+			
 		}
 		return handshakeResponse;
 	}
@@ -284,13 +285,15 @@ public class Peer extends Thread
 			sendHandshake();
 			//System.out.println("handshake sent");
 			byte[] handshakeResponse = getHandshakeResponse();
+			if (handshakeResponse == null)
+			{
+				return false;
+			}
 			if (verifyResponse(handshakeResponse, newPeer))
 			{
 				return true;
 			}
 		}
-		System.err.println("Failed to validate handshake from remote peer after "
-					+ VALIDATION_ATTEMPTS + " times. Try again.");
 		return false;
 	}
 	
@@ -340,7 +343,7 @@ public class Peer extends Thread
 	{
 		continueRunning = false;
 		closeConnection();
-		System.out.println("closing peer connection");
+		System.out.println("closing peer connection to " + ip);
 	}
 	
 	public void getStreams()
@@ -370,7 +373,8 @@ public class Peer extends Thread
 			getConnection();
 			if (!sendAndValidateHandshake(newPeer))
 			{
-				closeConnection();
+				System.err.println("couldn't verify handshake");
+				pMgr.removePeer(this);
 				return;
 			}
 		}
@@ -382,8 +386,8 @@ public class Peer extends Thread
 			handshakeResponse = getHandshakeResponse();
 			if (!verifyResponse(handshakeResponse, newPeer))
 			{
-				System.out.println("couldn't verify handshake");
-				closeConnection();
+				System.err.println("couldn't verify handshake");
+				pMgr.removePeer(this);
 				return;
 			}
 			sendHandshake();	

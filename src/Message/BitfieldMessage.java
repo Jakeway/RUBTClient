@@ -23,16 +23,9 @@ public class BitfieldMessage extends Message
 	
 	
 	@Override
-	protected void sendPayload(DataOutputStream out)
+	protected void sendPayload(DataOutputStream out) throws IOException
 	{
-		try 
-		{
-			out.write(bitfield);
-		} 
-		catch (IOException e) 
-		{
-			e.printStackTrace();
-		}
+		out.write(bitfield);
 	}
 	
 	

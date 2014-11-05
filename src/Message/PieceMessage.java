@@ -30,19 +30,13 @@ public class PieceMessage extends Message {
 		return block;
 	}
 	
-	protected void sendPayload(DataOutputStream out) 
+	protected void sendPayload(DataOutputStream out) throws IOException 
 	{
-		try
-		{
-			out.writeInt(pieceIndex);
-			out.writeInt(byteOffset);
-			out.write(block);
-		} 
-		catch (IOException e) 
-		{
-			e.printStackTrace();
-		}
+		out.writeInt(pieceIndex);
+		out.writeInt(byteOffset);
+		out.write(block);
 	}
+	
 	
 	
 	

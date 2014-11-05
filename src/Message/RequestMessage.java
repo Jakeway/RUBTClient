@@ -40,18 +40,11 @@ public class RequestMessage extends Message {
 	
 	
 	@Override
-	protected void sendPayload(DataOutputStream out) 
+	protected void sendPayload(DataOutputStream out) throws IOException 
 	{
-		try
-		{
-			out.writeInt(pieceIndex);
-			out.writeInt(byteOffset);
-			out.writeInt(blockLength);
-		} 
-		catch (IOException e) 
-		{
-			e.printStackTrace();
-		}
+		out.writeInt(pieceIndex);
+		out.writeInt(byteOffset);
+		out.writeInt(blockLength);
 	}
 
 

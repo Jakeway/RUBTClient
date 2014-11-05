@@ -63,11 +63,11 @@ public class Message
 			out.writeByte(id);
 		}
 		this.sendPayload(out);
-		out.flush();
+		out.flush();	
 	} 
 	
 	
-	protected void sendPayload(DataOutputStream out) 
+	protected void sendPayload(DataOutputStream out) throws IOException 
 	{
 		// general Message class has no payload
 		// Have, Bitfield, Request, Piece do.
