@@ -252,6 +252,24 @@ public class Util
 		
 	}
 	
+	public static ArrayList<Integer> getPeerPieces(byte[] bitfield)
+	{
+		ArrayList<Integer> peerPieces = new ArrayList<Integer>();
+		int pieceNum = 0;
+		for (int byteIndex = 0; byteIndex < bitfield.length; byteIndex++)
+		{
+			for (int bitIndex = 0; bitIndex < 8; bitIndex++)
+			{
+				if(Util.isBitSet(bitfield[byteIndex], bitIndex))
+				{
+					peerPieces.add(pieceNum);
+					pieceNum++;
+				}
+			}
+		}
+		return peerPieces;
+	}
+	
 	public static void setBit(byte[] bitfield, int pieceIndex)
 	{
 		int byteIndex = pieceIndex / 8;
@@ -265,4 +283,11 @@ public class Util
 		return ( b & bitMask) > 0;
 	}
 	
+	public static void removeBit(byte[] bitfield, int pieceIndex)
+	{
+		int byteIndex = pieceIndex / 8;
+		int bitIndex = pieceIndex % 8;
+		byte b = bitfield[byteIndex];
+		bitfield[byteIndex] = (byte) (b & ~(1 << bitIndex));
+	}
 }

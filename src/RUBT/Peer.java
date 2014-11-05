@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 import Message.BitfieldMessage;
 import Message.Message;
@@ -51,6 +52,9 @@ public class Peer extends Thread
 
 	private byte[] bitfield;
 
+
+	private ArrayList<Integer> peerPieces;
+
 	public Peer(String ip,
 			int port,
 			String peerID,
@@ -88,11 +92,22 @@ public class Peer extends Thread
 	{
 		this.pMgr = pMgr;
 		this.bitfield = new byte[pMgr.getBitfieldLength()];
+		this.peerPieces = new ArrayList<Integer>();
 	}
 	
 	public byte[] getBitfield()
 	{
 		return this.bitfield;
+	}
+	
+	public ArrayList<Integer> getPeerPieces()
+	{
+		return this.peerPieces;
+	}
+	
+	public void setPeerPieces(ArrayList<Integer> peerPieces)
+	{
+		this.peerPieces = peerPieces;
 	}
 	
 	public boolean getClientInterested()

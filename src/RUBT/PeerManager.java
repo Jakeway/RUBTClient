@@ -201,18 +201,25 @@ public class PeerManager extends Thread
 	
 	public void generateRequestMessage(Peer p)
 	{
+		//need to check the peers bitfiled and see what pieces it has and then request a piece based on that
+		//int random = Util.getRandomInt(piecesLeft.size());
+		//int pieceToGet = piecesLeft.get(random);
 		int random = Util.getRandomInt(piecesLeft.size());
+		while(!(piecesLeft.contains((Object)random)) && !(p.getPeerPieces().contains((Object)random)))
+		{
+			random = Util.getRandomInt(piecesLeft.size());
+		}
 		int pieceToGet = piecesLeft.get(random);
 		int length;
 		if (pieceToGet == numPieces-1) // getting the last piece
 		{
-			 length = fileLength % pieceLength;
+			length = fileLength % pieceLength;
 		}
 		else
 		{
 			length = pieceLength;
 		}
- 		RequestMessage rm = new RequestMessage(pieceToGet, 0, length);
+		RequestMessage rm = new RequestMessage(pieceToGet, 0, length);
 		if (!sendMessage(rm, p))
 		{
 			removePeer(p);
@@ -252,8 +259,6 @@ public class PeerManager extends Thread
 					System.out.println(msg);
 				}
 				
-				
-				
 				switch (msg.getID())
 				{
 					case Message.KEEP_ALIVE_ID:
@@ -291,13 +296,9 @@ public class PeerManager extends Thread
 						break;
 						
 					case HaveMessage.HAVE_ID:
-						// update peers bitfield array
-						// we are downloading only from rutgers peers for now
-						//don't worry about this message for now
 						HaveMessage hm = (HaveMessage) msg;
-						if(p.getBitfield() == null)
-							System.out.println("bitfield is null");
 						Util.setBit(p.getBitfield(), hm.getPieceIndex());
+						p.setPeerPieces(Util.getPeerPieces(p.getBitfield()));
 						if(interestedInBitfield(p.getBitfield()))
 						{
 							if(!sendMessage(Message.INTERESTED_MSG, p))
@@ -316,7 +317,7 @@ public class PeerManager extends Thread
 						{
 							digestPieceMessage(pm);
 						}
-						if (piecesLeft.size() > 0)
+						if ( piecesLeft.size() > 0)
 						{
 							generateRequestMessage(p);
 						}
@@ -334,7 +335,7 @@ public class PeerManager extends Thread
 						if(!(p.getPeerChoked()) && p.getPeerInterested())
 						{
 							// if we have downloaded this piece
-							if (!piecesLeft.contains((Object) pieceIndex))
+							if ((Util.getPeerPieces(bitfield)).contains(pieceIndex))
 							{
 								byte[] block = fileToBytes(pieceIndex, rMsg.getBlockLength());
 								PieceMessage pieceMsg = new PieceMessage(pieceIndex, rMsg.getByteOffset(), block);
@@ -345,9 +346,9 @@ public class PeerManager extends Thread
 								}
 								amountUploaded += rMsg.getBlockLength();
 							}
+							//we do not have the piece they requested
 							else
 							{
-								
 								if (!sendMessage(Message.CHOKE_MSG, p))
 								{
 									removePeer(p);
@@ -363,6 +364,7 @@ public class PeerManager extends Thread
 						// need to check whether or not bitfield message bitfield has pieces we dont have
 						BitfieldMessage bm = (BitfieldMessage) msg;
 						byte[] receivedBitfield = bm.getBitfield();
+						p.setPeerPieces(Util.getPeerPieces(receivedBitfield));
 						if (interestedInBitfield(receivedBitfield))
 						{
 							p.setClientInterested(true);
