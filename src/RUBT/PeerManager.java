@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -142,9 +143,14 @@ public class PeerManager extends Thread
 			return;
 		}
 		HaveMessage hm = new HaveMessage(pieceNum);
-		for (Peer p : rutgersPeers)
+		for (Iterator<Peer> iterator = rutgersPeers.iterator(); iterator.hasNext();)
 		{
-			sendMessage(hm, p);
+			Peer p = iterator.next();
+			if (!sendMessage(hm, p))
+			{
+				p.stopListening();
+				iterator.remove();
+			}
 		}
 	}
 	
@@ -207,7 +213,10 @@ public class PeerManager extends Thread
 			length = pieceLength;
 		}
  		RequestMessage rm = new RequestMessage(pieceToGet, 0, length);
-		sendMessage(rm, p);
+		if (!sendMessage(rm, p))
+		{
+			removePeer(p);
+		}
 	}
 	
 	public void stopProcessingJobs()
@@ -255,7 +264,11 @@ public class PeerManager extends Thread
 						p.setPeerInterested(true);
 						
 						// we should only unchoke a certain amount of peers in long run, for now, just unchoke everyone
-						sendMessage(Message.UNCHOKE_MSG, p);
+						if (!sendMessage(Message.UNCHOKE_MSG, p))
+						{
+							removePeer(p);
+							break;
+						}
 						p.setPeerChoked(false);
 						break;
 					
@@ -312,13 +325,21 @@ public class PeerManager extends Thread
 							{
 								byte[] block = fileToBytes(pieceIndex, rMsg.getBlockLength());
 								PieceMessage pieceMsg = new PieceMessage(pieceIndex, rMsg.getByteOffset(), block);
-								sendMessage(pieceMsg, p);
+								if (!sendMessage(pieceMsg, p))
+								{
+									removePeer(p);
+									break;
+								}
 								amountUploaded += rMsg.getBlockLength();
 							}
 							else
 							{
 								
-								sendMessage(Message.CHOKE_MSG, p);
+								if (!sendMessage(Message.CHOKE_MSG, p))
+								{
+									removePeer(p);
+									break;
+								}
 								p.setPeerChoked(true);
 							}
 						}
@@ -332,7 +353,11 @@ public class PeerManager extends Thread
 						if (interestedInBitfield(receivedBitfield))
 						{
 							p.setClientInterested(true);
-							sendMessage(Message.INTERESTED_MSG, p);
+							if (!sendMessage(Message.INTERESTED_MSG, p))
+							{
+								removePeer(p);
+								break;
+							}
 						}
 						else
 						{
@@ -406,7 +431,7 @@ public class PeerManager extends Thread
 	
 	
 	
-	public void sendMessage(Message m, Peer p)
+	public boolean sendMessage(Message m, Peer p)
 	{
 		try
 		{
@@ -414,9 +439,15 @@ public class PeerManager extends Thread
 		} 
 		catch (IOException e) 
 		{
-			rutgersPeers.remove(p);
-			p.stopListening();
+			return false;
 		}
+		return true;
+	}
+	
+	private void removePeer(Peer p)
+	{
+		rutgersPeers.remove(p);
+		p.stopListening();
 	}
 }
 	
