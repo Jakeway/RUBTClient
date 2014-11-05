@@ -52,26 +52,20 @@ public class Message
 		this.id = ID;
 	}
 	
-	public void send(DataOutputStream out)
+	public void send(DataOutputStream out) throws IOException
 	{
-		try 
-		{
-			// write the Message length prefix
-			out.writeInt(this.length);
-			// don't need to write the Message ID of the keep alive message
-			if (id != KEEP_ALIVE_ID)
-			{
-				out.writeByte(id);
-			}
-			this.sendPayload(out);
-			out.flush();
-		} 
-		catch (IOException e) 
-		{
-			e.printStackTrace();
-		}
 
-	}
+		// write the Message length prefix
+		out.writeInt(this.length);
+		// don't need to write the Message ID of the keep alive message
+		if (id != KEEP_ALIVE_ID)
+		{
+			out.writeByte(id);
+		}
+		this.sendPayload(out);
+		out.flush();
+	} 
+	
 	
 	protected void sendPayload(DataOutputStream out) 
 	{
