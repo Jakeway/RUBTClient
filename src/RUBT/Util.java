@@ -13,6 +13,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import GivenTools.BencodingException;
@@ -163,7 +165,7 @@ public class Util
 	}
 	
 	
-	public static Peer findSpecificPeer(ArrayList<Peer> peers, String ip)
+	public static Peer findSpecificPeer(List<Peer> peers, String ip)
 	{
 		for (Peer p : peers)
 		{
@@ -179,9 +181,9 @@ public class Util
 	
 	
 	//method which finds all of the rutgers peers
-	public static ArrayList<Peer> findRutgersPeers(ArrayList<Peer> peers)
+	public static List<Peer> findRutgersPeers(List<Peer> peers)
 	{
-		ArrayList<Peer> rutgersPeers = new ArrayList<Peer>();
+		List<Peer> rutgersPeers = Collections.synchronizedList(new ArrayList<Peer>());
 		for(Peer p : peers)
 		{
 			String pIP = p.getIP();
@@ -233,14 +235,14 @@ public class Util
 		}
 	}
 	
-	public static byte[] fileToBytes(RandomAccessFile raf)
+	public static byte[] fileToBytes(RandomAccessFile raf, int pieceIndex, int pieceLength, int blockSize)
 	{
 		byte[] bytes = null;
 		try 
 		{
-			raf.seek(0);
-			bytes = new byte[(int) raf.length()];
-			raf.readFully(bytes);
+			raf.seek(pieceIndex * pieceLength);
+			bytes = new byte[blockSize];
+			raf.read(bytes);
 		} 
 		catch (IOException e) 
 		{

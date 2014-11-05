@@ -3,7 +3,9 @@ package RUBT;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import GivenTools.Bencoder2;
 import GivenTools.BencodingException;
@@ -27,7 +29,7 @@ public class Tracker
 	private HashMap<ByteBuffer, Object> trackerResponseMap;
 	
 	// list of Peers retrieved from Tracker response
-	private ArrayList<Peer> peerList;
+	private List<Peer> peerList;
 	
 	// port to contact tracker with
 	public static final String TRACKER_PORT = "6881";
@@ -111,14 +113,14 @@ public class Tracker
 		return peerMaps;
 	}
 	
-	public ArrayList<Peer> getPeerList()
+	public List<Peer> getPeerList()
 	{
 		return peerList;
 	}
 	
 	private void initPeerList()
 	{
-		ArrayList<Peer> peers = new ArrayList<Peer>();
+		List<Peer> peers = Collections.synchronizedList(new ArrayList<Peer>());
 		for (HashMap<ByteBuffer, Object> peerMap : peerMaps)
 		{
 			String ip = "";

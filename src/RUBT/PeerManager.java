@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -19,8 +20,8 @@ public class PeerManager extends Thread
 {
 	private RandomAccessFile saveFile;
 	private ArrayList<Integer> piecesLeft;
-	private ArrayList<Peer> peers;
-	private ArrayList<Peer> rutgersPeers;
+	private List<Peer> peers;
+	private List<Peer> rutgersPeers;
 	private Tracker tracker;
 	private byte[] bitfield;
 	private int amountDownloaded = 0;
@@ -35,6 +36,7 @@ public class PeerManager extends Thread
 	private ByteBuffer[] piece_hashes;
 	private boolean DEBUG;
 	private byte[] info_hash;
+	private Peer debugPeer;
 	
 	public PeerManager(TorrentInfo ti, RandomAccessFile destFile,
 			Tracker tracker, boolean DEBUG) 
@@ -74,7 +76,7 @@ public class PeerManager extends Thread
 		return bitfield;
 	}
 	
-	public ArrayList<Peer> getPeers()
+	public List<Peer> getPeers()
 	{
 		return peers;
 	}
@@ -91,6 +93,7 @@ public class PeerManager extends Thread
 		if (DEBUG)
 		{
 			Peer p = new Peer(RUBTClient.getDownloadFromIP(), 6881, "DEBUGUPLOAD123456789", tracker.localId);
+			this.debugPeer = p;
 			System.out.println("starting specific download from ip " + RUBTClient.getDownloadFromIP());
 			p.setPeerManager(this);
 			p.start();
@@ -141,7 +144,7 @@ public class PeerManager extends Thread
 		HaveMessage hm = new HaveMessage(pieceNum);
 		for (Peer p : rutgersPeers)
 		{
-			hm.send(p.getOutputStream());
+			sendMessage(hm, p);
 		}
 	}
 	
@@ -204,12 +207,17 @@ public class PeerManager extends Thread
 			length = pieceLength;
 		}
  		RequestMessage rm = new RequestMessage(pieceToGet, 0, length);
-		rm.send(p.getOutputStream());
+		sendMessage(rm, p);
 	}
 	
 	public void stopProcessingJobs()
 	{
 		keepRunning = false;
+		if (DEBUG)
+		{
+			this.debugPeer.stopListening();
+			return;
+		}
 		for (Peer p : rutgersPeers)
 		{
 			p.stopListening();
@@ -247,7 +255,7 @@ public class PeerManager extends Thread
 						p.setPeerInterested(true);
 						
 						// we should only unchoke a certain amount of peers in long run, for now, just unchoke everyone
-						Message.UNCHOKE_MSG.send(p.getOutputStream());
+						sendMessage(Message.UNCHOKE_MSG, p);
 						p.setPeerChoked(false);
 						break;
 					
@@ -302,17 +310,15 @@ public class PeerManager extends Thread
 							// if we have downloaded this piece
 							if (!piecesLeft.contains((Object) pieceIndex))
 							{
-								byte[] block = new byte[rMsg.getBlockLength()];
-								byte[] fileInBytes = Util.fileToBytes(saveFile);
-								System.arraycopy(fileInBytes, pieceIndex * this.pieceLength, block, 0, block.length);
+								byte[] block = fileToBytes(pieceIndex, rMsg.getBlockLength());
 								PieceMessage pieceMsg = new PieceMessage(pieceIndex, rMsg.getByteOffset(), block);
-								pieceMsg.send(p.getOutputStream());
+								sendMessage(pieceMsg, p);
 								amountUploaded += rMsg.getBlockLength();
-								
 							}
 							else
 							{
-								Message.CHOKE_MSG.send(p.getOutputStream());
+								
+								sendMessage(Message.CHOKE_MSG, p);
 								p.setPeerChoked(true);
 							}
 						}
@@ -326,7 +332,7 @@ public class PeerManager extends Thread
 						if (interestedInBitfield(receivedBitfield))
 						{
 							p.setClientInterested(true);
-							Message.INTERESTED_MSG.send(p.getOutputStream());
+							sendMessage(Message.INTERESTED_MSG, p);
 						}
 						else
 						{
@@ -376,7 +382,42 @@ public class PeerManager extends Thread
 		
 		return false;
 	}
-		
+	
+	public byte[] fileToBytes(int pieceIndex, int blockSize)
+	{
+		byte[] bytes = null;
+		try 
+		{
+			saveFile.seek(pieceIndex * pieceLength);
+			bytes = new byte[blockSize];
+			saveFile.read(bytes);
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+		return bytes;
+	}
+	
+	public void addPeer(Peer p)
+	{
+		this.rutgersPeers.add(p);
+	}
+	
+	
+	
+	public void sendMessage(Message m, Peer p)
+	{
+		try
+		{
+			m.send(p.getOutputStream());
+		} 
+		catch (IOException e) 
+		{
+			rutgersPeers.remove(p);
+			p.stopListening();
+		}
+	}
 }
 	
 	

@@ -64,6 +64,7 @@ public class UploadManager extends Thread
 					Peer p = new Peer(ip, port, localId, peerSocket);
 					p.setPeerManager(pMgr);
 					p.start();
+					pMgr.addPeer(p);
 				}
 				
 			}

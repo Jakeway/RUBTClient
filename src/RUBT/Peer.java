@@ -84,6 +84,7 @@ public class Peer extends Thread
 	public void setPeerManager(PeerManager pMgr)
 	{
 		this.pMgr = pMgr;
+		
 	}
 	
 	public boolean getClientInterested()
@@ -367,7 +368,7 @@ public class Peer extends Thread
 		
 		
 		BitfieldMessage bm =  new BitfieldMessage(pMgr.getBitfieldLength(), pMgr.getBitfield());
-		bm.send(outStream);
+		pMgr.sendMessage(bm, this);
 		
 		while (continueRunning)
 		{
