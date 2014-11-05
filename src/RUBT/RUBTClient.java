@@ -34,37 +34,22 @@ public class RUBTClient
 		}
 		
 		
-		if (DEBUG)
+		try
 		{
-			torrentFile = new File("Phase2.torrent");
-			try 
-			{
-				destFile = new RandomAccessFile("test2.mp4", "rw");
-			} 
-			catch (FileNotFoundException e) 
-			{
-				e.printStackTrace();
-			}
+			torrentFile = new File(args[0]);
+			destFile = new RandomAccessFile(args[1], "rw");
+		}
+		catch (NullPointerException e)
+		{
+			e.printStackTrace();
+			System.exit(1);
+		}
+		catch (FileNotFoundException e)
+		{
+			e.printStackTrace();
+			System.exit(1);
 		}
 		
-		else
-		{
-			try
-			{
-				torrentFile = new File(args[0]);
-				destFile = new RandomAccessFile(args[1], "rw");
-			}
-			catch (NullPointerException e)
-			{
-				e.printStackTrace();
-				System.exit(1);
-			}
-			catch (FileNotFoundException e)
-			{
-				e.printStackTrace();
-				System.exit(1);
-			}
-		}
 		
 		ti = Util.getTorrentInfo(torrentFile);
 		
@@ -113,6 +98,7 @@ public class RUBTClient
 					uMgr.interrupt();
 				}
 				System.out.println("stopping peer manager");
+				peerMgr.closeSaveFile();
 				peerMgr.stopProcessingJobs();
 				peerMgr.interrupt();
 				break;

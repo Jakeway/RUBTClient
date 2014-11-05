@@ -162,7 +162,6 @@ public class Tracker
 				+ "&downloaded=" + download
 				+ "&uploaded=" + upload
 				+ "&event=" + event;
-		System.out.println(trackerURL);
 		
 		byte[] trackerResponse = Util.sendGetRequest(trackerURL).getBytes();
 		this.response = trackerResponse;

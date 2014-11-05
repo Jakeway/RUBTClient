@@ -9,6 +9,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import GivenTools.TorrentInfo;
+import Message.BitfieldMessage;
+import Message.HaveMessage;
+import Message.Message;
+import Message.PieceMessage;
+import Message.RequestMessage;
 
 public class PeerManager extends Thread
 {
@@ -48,8 +53,7 @@ public class PeerManager extends Thread
 		bitfield = new byte[getBitfieldLength()];
 		amountLeft = fileLength;
 		jobs = new LinkedBlockingQueue<Job>();
-		printPeers();
-		
+		//printPeers();
 	}
 
 	private void printPeers()
@@ -95,7 +99,7 @@ public class PeerManager extends Thread
 		{
 			for (Peer p : rutgersPeers)
 			{
-				System.out.println("starting a peer");
+				System.out.println("starting a peer with ip " + p.getIP());
 				p.setPeerManager(this);
 				p.start();
 			}
@@ -109,6 +113,8 @@ public class PeerManager extends Thread
 		piecesLeft.remove((Object)pm.getPieceIndex());
 		amountDownloaded += pm.getBlock().length;
 		amountLeft = amountLeft - pm.getBlock().length;
+		// update our bitfield to reflect the piece we just downloaded
+		Util.setBit(bitfield, pm.getPieceIndex());
 	}
 	
 	private void insertPieceInfo(PieceMessage pm)
@@ -128,6 +134,10 @@ public class PeerManager extends Thread
 	
 	private void sendHaveMessages(int pieceNum)
 	{
+		if (DEBUG)
+		{
+			return;
+		}
 		HaveMessage hm = new HaveMessage(pieceNum);
 		for (Peer p : rutgersPeers)
 		{
@@ -146,6 +156,10 @@ public class PeerManager extends Thread
 		
 		System.out.println("took " + minutes + " minutes and " + seconds + " seconds to download file");
 		
+	}
+	
+	public void closeSaveFile()
+	{
 		try 
 		{
 			saveFile.close();	
@@ -216,41 +230,43 @@ public class PeerManager extends Thread
 				Message msg = j.getMessage();
 				Peer p = j.getPeer();
 				
+				if (DEBUG)
+				{
+					System.out.println(msg);
+				}
+				
+				
+				
 				switch (msg.getID())
 				{
 					case Message.KEEP_ALIVE_ID:
-						Message.KEEP_ALIVE_MSG.send(p.getOutputStream());
 						break;
 					
 					case Message.INTERESTED_ID:
 						// set peer to be in an interested state
-						p.setInterested(true);
+						p.setPeerInterested(true);
+						
+						// we should only unchoke a certain amount of peers in long run, for now, just unchoke everyone
 						Message.UNCHOKE_MSG.send(p.getOutputStream());
-						p.setChoked(false);
+						p.setPeerChoked(false);
 						break;
 					
 					case Message.UNINTERESTED_ID:
 						// set peer to be in an uninterested state
-						p.setInterested(false);
-						Message.KEEP_ALIVE_MSG.send(p.getOutputStream());
+						p.setPeerInterested(false);
 						break;
 						
 					case Message.CHOKE_ID:
-						// set peer to be choked
+						p.setClientChoked(true);
 						break;
 					
 					case Message.UNCHOKE_ID:
 						// if peer isn't choked and is interested, send piece request
+						p.setClientChoked(false);
 						if(p.getClientInterested())
 						{
 							generateRequestMessage(p);
 						}
-						else
-						{
-							Message.KEEP_ALIVE_MSG.send(p.getOutputStream());
-						}
-						// pick a piece, request it.
-						// else, just send a keep alive
 						break;
 						
 					case HaveMessage.HAVE_ID:
@@ -260,6 +276,7 @@ public class PeerManager extends Thread
 						break;
 					
 					case PieceMessage.PIECE_ID:
+						
 						PieceMessage pm = (PieceMessage) msg;
 						if (Util.verifyHash(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
 						{
@@ -275,33 +292,49 @@ public class PeerManager extends Thread
 						}
 						break;
 					
+						
 					case RequestMessage.REQUEST_ID:
 						RequestMessage rMsg = (RequestMessage) msg;
 						int pieceIndex = rMsg.getPieceIndex();
 						// if this peer is interested and unchoked
-						if(!(p.getChoked()) && p.getInterested())
+						if(!(p.getPeerChoked()) && p.getPeerInterested())
 						{
-							if (piecesLeft.contains((Object) pieceIndex))
+							// if we have downloaded this piece
+							if (!piecesLeft.contains((Object) pieceIndex))
 							{
 								byte[] block = new byte[rMsg.getBlockLength()];
 								byte[] fileInBytes = Util.fileToBytes(saveFile);
-								System.arraycopy(fileInBytes, rMsg.getByteOffset(), block, 0, rMsg.getBlockLength());
+								System.arraycopy(fileInBytes, pieceIndex * this.pieceLength, block, 0, block.length);
 								PieceMessage pieceMsg = new PieceMessage(pieceIndex, rMsg.getByteOffset(), block);
 								pieceMsg.send(p.getOutputStream());
 								amountUploaded += rMsg.getBlockLength();
-								break;
+								
 							}
 							else
 							{
 								Message.CHOKE_MSG.send(p.getOutputStream());
-								p.setChoked(true);
+								p.setPeerChoked(true);
 							}
-						}	
-						case BitfieldMessage.BITFIELD_ID:
-							// NEED TO CHECK BITFIELD MESSAGE, IF WE ALREADY DOWNLOADED THE WHOLE FILE, DON'T SEND INTERESTED MSG
-							Message.INTERESTED_MSG.send(p.getOutputStream());
+						}
+						break;
+						
+					case BitfieldMessage.BITFIELD_ID:
+						
+						// need to check whether or not bitfield message bitfield has pieces we dont have
+						BitfieldMessage bm = (BitfieldMessage) msg;
+						byte[] receivedBitfield = bm.getBitfield();
+						if (interestedInBitfield(receivedBitfield))
+						{
 							p.setClientInterested(true);
-							break;
+							Message.INTERESTED_MSG.send(p.getOutputStream());
+						}
+						else
+						{
+							p.setClientInterested(false);
+						}
+						break;
+						
+	
 				}
 			}
 			catch (InterruptedException e) 
@@ -312,6 +345,36 @@ public class PeerManager extends Thread
 		}
 
 		
+	}
+	
+	// returns true if we are interested in the pieces in this bitfield
+	private boolean interestedInBitfield(byte[] bfield)
+	{
+		if (amountLeft == 0)
+		{
+			return false;
+		}
+		for (int byteIndex = 0; byteIndex < bitfield.length; byteIndex++)
+		{
+			for (int bitIndex = 0; bitIndex < 8; bitIndex++)
+			{
+				try
+				{
+				if (!Util.isBitSet(this.bitfield[byteIndex], bitIndex) 
+						&& Util.isBitSet(bfield[byteIndex], bitIndex))
+				{
+					return true;
+				}
+				}
+				catch (ArrayIndexOutOfBoundsException e)
+				{
+					System.out.println("byte index: " + byteIndex);
+					System.out.println("bit index: " + bitIndex);
+				}
+			}
+		}
+		
+		return false;
 	}
 		
 }

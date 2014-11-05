@@ -1,5 +1,7 @@
 package RUBT;
 
+import Message.Message;
+
 public class Job 
 {
 	private Message message;

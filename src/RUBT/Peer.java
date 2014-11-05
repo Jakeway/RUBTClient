@@ -9,6 +9,9 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
+import Message.BitfieldMessage;
+import Message.Message;
+
 public class Peer extends Thread
 {
 	
@@ -35,9 +38,11 @@ public class Peer extends Thread
 	
 	private DataInputStream inStream;
 
-	private boolean interested;
+	private boolean peerInterested;
 	
-	private boolean choked;
+	private boolean peerChoked;
+	
+	private boolean clientChoked;
 	
 	private PeerManager pMgr;
 	
@@ -53,11 +58,9 @@ public class Peer extends Thread
 		this.localId = localID;
 		this.peerId = peerID;
 		this.clientInterested = false;
-		this.interested = false;
-		this.choked = true;
-		
-		System.out.println("peer id: " + peerId);
-		System.out.println("local client id: " + localId);
+		this.peerInterested = false;
+		this.clientChoked = true;
+		this.peerChoked = true;
 	}
 	
 	public Peer(String ip, int port, String localID, Socket s)
@@ -66,10 +69,10 @@ public class Peer extends Thread
 		this.port = port;
 		this.localId = localID;
 		this.clientInterested = false;
-		this.interested = false;
-		this.choked = true;
+		this.peerInterested = false;
+		this.clientChoked = true;
+		this.peerChoked = true;
 		this.s = s;
-		System.out.println("local client id: " + localId);
 	}
 	
 	
@@ -93,14 +96,14 @@ public class Peer extends Thread
 		this.clientInterested = state;
 	}
 	
-	public boolean getInterested()
+	public boolean getPeerInterested()
 	{
-		return this.interested;
+		return this.peerInterested;
 	}
 	
-	public void setInterested(boolean state)
+	public void setPeerInterested(boolean state)
 	{
-		this.interested = state;
+		this.peerInterested = state;
 	}
 	
 	public void setPeerId(String peerId)
@@ -108,14 +111,24 @@ public class Peer extends Thread
 		this.peerId = peerId;
 	}
 	
-	public boolean getChoked()
+	public boolean getPeerChoked()
 	{
-		return this.choked;
+		return this.peerChoked;
 	}
 	
-	public void setChoked(boolean state)
+	public void setPeerChoked(boolean state)
 	{
-		this.choked = state;
+		this.peerChoked = state;
+	}
+	
+	public boolean getClientChoked()
+	{
+		return this.clientChoked;
+	}
+	
+	public void setClientChoked(boolean state)
+	{
+		this.clientChoked = state;
 	}
 	
 	public String getPeerId()
@@ -213,7 +226,6 @@ public class Peer extends Thread
 		else
 		// this response checks out, set the new peers peer id to the peer id it sent in handshake
 		{
-			System.out.println("parsing peer id");
 			parsePeerId(peerHandshake);
 			return true;
 		}
@@ -244,9 +256,9 @@ public class Peer extends Thread
 	{
 		for (int i = 1; i <= VALIDATION_ATTEMPTS; i++)
 		{
-			System.out.println("Attempting to validate peer response - Attempt: " + i);
+			//System.out.println("Attempting to validate peer response - Attempt: " + i);
 			sendHandshake();
-			System.out.println("handshake sent");
+			//System.out.println("handshake sent");
 			byte[] handshakeResponse = getHandshakeResponse();
 			if (verifyResponse(handshakeResponse, newPeer))
 			{
@@ -324,45 +336,37 @@ public class Peer extends Thread
 	public void run()
 	{
 		boolean newPeer;
+		
 		generateHandshake();
-		System.out.println("printing generated handshake");
-		printResponse(handshake);
 		byte[] handshakeResponse;
 		// this happens when we are the ones who want to download
 		if (s == null)
 		{
 			newPeer = false;
-			System.out.println("getting connection");
 			getConnection();
 			if (!sendAndValidateHandshake(newPeer))
 			{
 				closeConnection();
 				return;
 			}
-			System.out.println("validated handshake");
 		}
 		// happens when a peer has connected to us
 		else
 		{
 			newPeer = true;
-			System.out.println("getting streams");
 			getStreams();
 			handshakeResponse = getHandshakeResponse();
-			System.out.println("about to verify handshake");
-			this.printResponse(handshakeResponse);
 			if (!verifyResponse(handshakeResponse, newPeer))
 			{
-				System.out.println("couldnt verify handshake");
+				System.out.println("couldn't verify handshake");
 				closeConnection();
 				return;
 			}
-			System.out.println("verified handshake");
 			sendHandshake();	
 		}
 		
 		
 		BitfieldMessage bm =  new BitfieldMessage(pMgr.getBitfieldLength(), pMgr.getBitfield());
-		System.out.println("sent bitfield message");
 		bm.send(outStream);
 		
 		while (continueRunning)

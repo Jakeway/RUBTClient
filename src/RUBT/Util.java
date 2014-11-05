@@ -238,6 +238,7 @@ public class Util
 		byte[] bytes = null;
 		try 
 		{
+			raf.seek(0);
 			bytes = new byte[(int) raf.length()];
 			raf.readFully(bytes);
 		} 
@@ -248,4 +249,18 @@ public class Util
 		return bytes;
 		
 	}
+	
+	public static void setBit(byte[] bitfield, int pieceIndex)
+	{
+		int byteIndex = pieceIndex / 8;
+		int bitIndex = pieceIndex % 8;
+		bitfield[byteIndex] =  bitfield[byteIndex] |= (1 << bitIndex);
+	}
+	
+	public static boolean isBitSet(byte b, int bitIndex)
+	{
+		int bitMask = 1 << bitIndex;
+		return ( b & bitMask) > 0;
+	}
+	
 }
