@@ -329,7 +329,6 @@ public class PeerManager extends Thread
 						}
 						break;
 					
-						
 					case RequestMessage.REQUEST_ID:
 						RequestMessage rMsg = (RequestMessage) msg;
 						int pieceIndex = rMsg.getPieceIndex();

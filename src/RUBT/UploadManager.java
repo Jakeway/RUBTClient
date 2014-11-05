@@ -60,7 +60,6 @@ public class UploadManager extends Thread
 				}
 				else
 				{
-					System.out.println("starting a peer which will be uploading");
 					Peer p = new Peer(ip, port, localId, peerSocket);
 					p.setPeerManager(pMgr);
 					p.start();
