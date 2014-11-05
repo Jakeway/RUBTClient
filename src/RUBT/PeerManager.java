@@ -294,6 +294,19 @@ public class PeerManager extends Thread
 						// update peers bitfield array
 						// we are downloading only from rutgers peers for now
 						//don't worry about this message for now
+						HaveMessage hm = (HaveMessage) msg;
+						if(p.getBitfield() == null)
+							System.out.println("bitfield is null");
+						Util.setBit(p.getBitfield(), hm.getPieceIndex());
+						if(interestedInBitfield(p.getBitfield()))
+						{
+							if(!sendMessage(Message.INTERESTED_MSG, p))
+							{
+								removePeer(p);
+								break;
+							}
+							p.setClientInterested(true);
+						}
 						break;
 					
 					case PieceMessage.PIECE_ID:

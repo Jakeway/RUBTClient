@@ -48,6 +48,9 @@ public class Peer extends Thread
 	
 	private boolean clientInterested;
 
+
+	private byte[] bitfield;
+
 	public Peer(String ip,
 			int port,
 			String peerID,
@@ -84,7 +87,12 @@ public class Peer extends Thread
 	public void setPeerManager(PeerManager pMgr)
 	{
 		this.pMgr = pMgr;
-		
+		this.bitfield = new byte[pMgr.getBitfieldLength()];
+	}
+	
+	public byte[] getBitfield()
+	{
+		return this.bitfield;
 	}
 	
 	public boolean getClientInterested()
