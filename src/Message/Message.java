@@ -9,6 +9,8 @@ public class Message
 	
 	private int length;
 	private byte id;
+	
+	
 
 	public static final byte CHOKE_ID = 0;
 	
@@ -18,7 +20,12 @@ public class Message
 	
 	public static final byte UNINTERESTED_ID = 3;
 	
+	
+	// not part of standard, just used to communicate that we received a garbage message.
+	public static final byte ERROR_ID = -2;
+	
 	public static final byte CANCEL_ID = 8;
+	
 	
 	// not an actual standard, doesn't get used.
 	// KEEP_ALIVE Messages don't have an ID.
@@ -44,6 +51,9 @@ public class Message
 
 	public static final Message UNINTERESTED_MSG = 
 			new Message(1, UNINTERESTED_ID);
+	
+	public static final Message ERROR_MSG =
+			new Message(-1, ERROR_ID);
 	
 
 	public Message(int lenPrefix, byte ID)
@@ -135,6 +145,8 @@ public class Message
 						return UNINTERESTED_MSG;
 					default:
 						System.err.println("Received unrecognized message with length 1. ID: " + id);
+						return ERROR_MSG;
+						
 				}
 			}
 			else if(length == 5 && id == HaveMessage.HAVE_ID)
