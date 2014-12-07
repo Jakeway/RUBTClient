@@ -9,6 +9,9 @@ import java.util.Scanner;
 
 import GivenTools.TorrentInfo;
 
+
+// ASSUME THAT .131 HAS ALL PIECES, DONT LOOK AT BITFIELD
+
 public class RUBTClient 
 {
 	static String downloadFromIP = "";
@@ -54,10 +57,7 @@ public class RUBTClient
 		ti = Util.getTorrentInfo(torrentFile);
 		
 		String localID = Util.getRandomPeerId();
-		if (!DEBUG)
-		{
-			localID = "DEBUGUPLOAD123456789";
-		}
+		
 		
 		Tracker tracker = new Tracker(ti, localID);
 		try 
@@ -76,15 +76,13 @@ public class RUBTClient
 		
 		UploadManager uMgr = null;
 		
-		// if we are debugging, don't start up the upload manager
+		// if we aren't debugging,start up the upload manager
 		if (!DEBUG)
 		{
 			uMgr = new UploadManager(peerMgr, localID);
 			uMgr.start();
 		}
-		
-	//	System.out.println(localID);
-		
+
 		Scanner sc = new Scanner(System.in);
 		String input = "";
 		while (sc.hasNext())

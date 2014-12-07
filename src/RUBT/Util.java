@@ -282,6 +282,32 @@ public class Util
 		return ( b & bitMask) > 0;
 	}
 	
+	public static boolean isBitSet(byte[] bitfield, int pieceIndex)
+	{
+		int byteIndex = pieceIndex / 8;
+		int bitIndex = pieceIndex % 8;
+		byte b = bitfield[byteIndex];
+		return isBitSet(b, bitIndex);
+	}
+	
+	public static void iterateBitfield(byte[] bitfield)
+	{
+		
+		for (int j = 0; j < bitfield.length; j++)
+		{
+			
+			for (int i = 0; i < 8; i++)
+			{
+				if (Util.isBitSet(bitfield[j], i))
+				{
+					System.out.println("Bit index " + i + " is set in byte " + j);
+					int pieceIndex = (j * 8) + i;
+					System.out.println("downloaded piece " + pieceIndex);
+				}
+			}
+		}
+	}
+	
 	public static void removeBit(byte[] bitfield, int pieceIndex)
 	{
 		int byteIndex = pieceIndex / 8;

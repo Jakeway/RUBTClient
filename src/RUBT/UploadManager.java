@@ -53,9 +53,9 @@ public class UploadManager extends Thread
 				String ip = remoteAddress.substring(1, colonIndex);
 				int port = peerSocket.getPort();
 				System.out.println("received connection from: " + ip + ":" + port);
-				if (pMgr.getPeers().contains(Util.findSpecificPeer(pMgr.getRutgersPeers(), ip)))
+				if (pMgr.getConnectedPeers().contains(Util.findSpecificPeer(pMgr.getConnectedPeers(), ip)))
 				{
-					System.out.println("closing connection from " + ip + ":" + port);
+					System.out.println("already have connection from " + ip + ":" + port);
 					peerSocket.close();
 				}
 				else
@@ -63,7 +63,6 @@ public class UploadManager extends Thread
 					Peer p = new Peer(ip, port, localId, peerSocket);
 					p.setPeerManager(pMgr);
 					p.start();
-					pMgr.addPeer(p);
 				}
 				
 			}

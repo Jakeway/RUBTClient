@@ -5,10 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 
 import Message.BitfieldMessage;
 import Message.Message;
@@ -53,7 +50,7 @@ public class Peer extends Thread
 	private byte[] bitfield;
 
 
-	private ArrayList<Integer> peerPieces;
+	//private ArrayList<Integer> peerPieces;
 
 	public Peer(String ip,
 			int port,
@@ -92,7 +89,6 @@ public class Peer extends Thread
 	{
 		this.pMgr = pMgr;
 		this.bitfield = new byte[pMgr.getBitfieldLength()];
-		this.peerPieces = new ArrayList<Integer>();
 	}
 	
 	public byte[] getBitfield()
@@ -100,15 +96,11 @@ public class Peer extends Thread
 		return this.bitfield;
 	}
 	
-	public ArrayList<Integer> getPeerPieces()
+	public void setBitfield(byte[] bitfield)
 	{
-		return this.peerPieces;
+		this.bitfield = bitfield;
 	}
-	
-	public void setPeerPieces(ArrayList<Integer> peerPieces)
-	{
-		this.peerPieces = peerPieces;
-	}
+
 	
 	public boolean getClientInterested()
 	{
@@ -297,21 +289,44 @@ public class Peer extends Thread
 		return false;
 	}
 	
-	private void getConnection()
+	private boolean getConnection()
 	{
 		Socket peerSocket = null;
 		try {
 			peerSocket = new Socket(ip, port);
 			this.s = peerSocket;
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (SocketException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException e)
+		{
+			return false;
 		}
 
-		getStreams();
+		if (getStreams())
+		{
+			return true;
+		}
+		else
+		{
+			try {
+				peerSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return false;
+	}
+	
+	public boolean getStreams()
+	{
+		try {
+			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+			DataInputStream dis = new DataInputStream(s.getInputStream());
+			this.inStream = dis;
+			this.outStream = dos;
+			
+		} catch (IOException e) {
+			return false;
+		}
+		return true;
 	}
 	
 	public void closeConnection()
@@ -323,6 +338,9 @@ public class Peer extends Thread
 			this.s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (NullPointerException e) {
+			
+			System.out.println("null pointer exception with " + this.ip);
 		}
 	}
 	
@@ -346,35 +364,32 @@ public class Peer extends Thread
 		System.out.println("closing peer connection to " + ip);
 	}
 	
-	public void getStreams()
-	{
-		try {
-			DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-			DataInputStream dis = new DataInputStream(s.getInputStream());
-			this.inStream = dis;
-			this.outStream = dos;
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 	
 	private volatile boolean continueRunning = true;
 	public void run()
 	{
 		boolean newPeer;
-		
 		generateHandshake();
 		byte[] handshakeResponse;
+		
 		// this happens when we are the ones who want to download
 		if (s == null)
 		{
 			newPeer = false;
-			getConnection();
+			if (getConnection())
+			{
+				System.out.println("got connection to " + this.ip);
+				pMgr.addConnectedPeer(this);
+			}
+			else
+			{
+				System.out.println("couldnt get connection to " + this.ip);
+				return;
+			}
 			if (!sendAndValidateHandshake(newPeer))
 			{
-				System.err.println("couldn't verify handshake");
-				pMgr.removePeer(this);
+				System.err.println("couldn't verify handshake with " + this.ip);
+				pMgr.removeConnectedPeer(this);
 				return;
 			}
 		}
@@ -382,13 +397,35 @@ public class Peer extends Thread
 		else
 		{
 			newPeer = true;
-			getStreams();
+			if (getStreams())
+			{
+				System.out.println("acquired streams for incoming connection " + this.ip);
+				pMgr.addConnectedPeer(this);
+			}
+			else
+			{
+				// if can't get the streams, then close the socket.
+				System.out.println("couldn't get streams for " + this.ip);
+				try 
+				{
+					this.s.close();
+				} 
+				catch (IOException e) 
+				{
+					e.printStackTrace();
+				}
+				return;
+			}
 			handshakeResponse = getHandshakeResponse();
 			if (!verifyResponse(handshakeResponse, newPeer))
 			{
-				System.err.println("couldn't verify handshake");
-				pMgr.removePeer(this);
+				System.err.println("couldn't verify handshake with " + this.ip);
+				pMgr.removeConnectedPeer(this);
 				return;
+			}
+			else
+			{
+				System.out.println("verified response from " + this.ip);
 			}
 			sendHandshake();	
 		}

@@ -21,8 +21,9 @@ public class PeerManager extends Thread
 {
 	private RandomAccessFile saveFile;
 	private ArrayList<Integer> piecesLeft;
-	private List<Peer> peers;
-	private List<Peer> rutgersPeers;
+	private ArrayList<Peer> trackerPeers;
+	private ArrayList<Peer> connectedPeers;
+	//private List<Peer> rutgersPeers;
 	private Tracker tracker;
 	private byte[] bitfield;
 	private int amountDownloaded = 0;
@@ -38,6 +39,7 @@ public class PeerManager extends Thread
 	private boolean DEBUG;
 	private byte[] info_hash;
 	private Peer debugPeer;
+	private int numUnchokedConnections;
 	
 	public PeerManager(TorrentInfo ti, RandomAccessFile destFile,
 			Tracker tracker, boolean DEBUG) 
@@ -50,21 +52,14 @@ public class PeerManager extends Thread
 		this.piecesLeft = Util.getPiecesLeft(numPieces);
 		this.fileLength = ti.file_length;
 		this.tracker = tracker;
-		this.peers = tracker.getPeerList();
-		this.rutgersPeers = Util.findRutgersPeers(peers);
+		this.trackerPeers = tracker.getPeerList();
+		//this.rutgersPeers = Util.findRutgersPeers(peers);
 		this.DEBUG = DEBUG;
 		bitfield = new byte[getBitfieldLength()];
 		amountLeft = fileLength;
 		jobs = new LinkedBlockingQueue<Job>();
-		//printPeers();
-	}
-
-	private void printPeers()
-	{
-		for (Peer p : rutgersPeers)
-		{
-			System.out.println(p.getIP());
-		}
+		numUnchokedConnections = 0;
+		connectedPeers = new ArrayList<Peer>();
 	}
 	
 	public int getBitfieldLength()
@@ -77,10 +72,11 @@ public class PeerManager extends Thread
 		return bitfield;
 	}
 	
-	public List<Peer> getPeers()
+	public List<Peer> getConnectedPeers()
 	{
-		return peers;
+		return connectedPeers;
 	}
+	
 	
 	public byte[] getIndexHash()
 	{
@@ -101,7 +97,7 @@ public class PeerManager extends Thread
 		}
 		else
 		{
-			for (Peer p : rutgersPeers)
+			for (Peer p : trackerPeers)
 			{
 				System.out.println("starting a peer with ip " + p.getIP());
 				p.setPeerManager(this);
@@ -143,11 +139,12 @@ public class PeerManager extends Thread
 			return;
 		}
 		HaveMessage hm = new HaveMessage(pieceNum);
-		for (Iterator<Peer> iterator = rutgersPeers.iterator(); iterator.hasNext();)
+		for (Iterator<Peer> iterator = connectedPeers.iterator(); iterator.hasNext();)
 		{
 			Peer p = iterator.next();
 			if (!sendMessage(hm, p))
 			{
+		
 				p.stopListening();
 				iterator.remove();
 			}
@@ -202,14 +199,44 @@ public class PeerManager extends Thread
 	public void generateRequestMessage(Peer p)
 	{
 		//need to check the peers bitfiled and see what pieces it has and then request a piece based on that
-		int random = Util.getRandomInt(piecesLeft.size());
-		while(!(piecesLeft.contains((Object)random)) && (!p.getPeerPieces().contains((Object)random)))
+		//System.out.println(piecesLeft.size());
+		
+		
+		// this code was used to try to figure out why we were getting stuck at 4 pieces left.
+		// turns out the rutgers .131 peer is not sending the correct bitfield.
+		// to remedy this, TA just told us to assume .131 has all pieces and don't look at it's bitfield.
+		
+		/*
+		if (piecesLeft.size() == 4)
 		{
-			random = Util.getRandomInt(piecesLeft.size());
+			for (int i : piecesLeft)
+			{
+				System.out.println(i);
+			}
+			System.out.println("our bitfield");
+			Util.iterateBitfield(bitfield);
+			
+			System.out.println("their bitfield");
+			Util.iterateBitfield(p.getBitfield());
 		}
-		int pieceToGet = piecesLeft.get(random);
+		*/
+		int random = Util.getRandomInt(piecesLeft.size());
+		int pieceIndex = piecesLeft.get(random);
+		while (true)
+		{
+			//				 the peer has piece we need			        we don't yet have this piece
+			if (	(Util.isBitSet(p.getBitfield(), pieceIndex))  && (!Util.isBitSet(bitfield, pieceIndex))		)
+			{
+				break;
+			}
+			else
+			{
+				random = Util.getRandomInt(piecesLeft.size());
+				pieceIndex = piecesLeft.get(random);
+			}
+		}
 		int length;
-		if (pieceToGet == numPieces-1) // getting the last piece
+		if (pieceIndex == numPieces-1) // getting the last piece
 		{
 			length = fileLength % pieceLength;
 		}
@@ -217,10 +244,10 @@ public class PeerManager extends Thread
 		{
 			length = pieceLength;
 		}
-		RequestMessage rm = new RequestMessage(pieceToGet, 0, length);
+		RequestMessage rm = new RequestMessage(pieceIndex, 0, length);
 		if (!sendMessage(rm, p))
 		{
-			removePeer(p);
+			removeConnectedPeer(p);
 		}
 	}
 	
@@ -232,7 +259,7 @@ public class PeerManager extends Thread
 			this.debugPeer.stopListening();
 			return;
 		}
-		for (Peer p : rutgersPeers)
+		for (Peer p : connectedPeers)
 		{
 			p.stopListening();
 		}
@@ -252,29 +279,44 @@ public class PeerManager extends Thread
 				Message msg = j.getMessage();
 				Peer p = j.getPeer();
 				
-				if (DEBUG)
-				{
-					System.out.println(msg);
-				}
-				
 				switch (msg.getID())
 				{
 					case Message.KEEP_ALIVE_ID:
 						break;
 					
 					case Message.INTERESTED_ID:
+						
 						// set peer to be in an interested state
 						p.setPeerInterested(true);
 						
-						// we should only unchoke a certain amount of peers in long run, for now, just unchoke everyone
-						if (!sendMessage(Message.UNCHOKE_MSG, p))
+						
+						
+						// perhaps should keep two lists of connected peers. (... or just use a boolean?)
+						// one for peers that are unchoked, one for are choked
+						// then when we do optimistic choking, pick peer with worst download rate of unchoked, and try a peer from the choked list
+						
+						if (numUnchokedConnections > 3)
 						{
-							removePeer(p);
-							break;
+							if (!sendMessage(Message.CHOKE_MSG, p))
+							{
+								removeConnectedPeer(p);
+								break;
+							}
 						}
-						p.setPeerChoked(false);
-						break;
-					
+						else
+						{
+							if (!sendMessage(Message.UNCHOKE_MSG, p))
+							{
+								removeConnectedPeer(p);
+								break;
+							}
+							else
+							{
+								p.setPeerChoked(false);
+								numUnchokedConnections++;
+								break;
+							}
+						}
 					case Message.UNINTERESTED_ID:
 						// set peer to be in an uninterested state
 						p.setPeerInterested(false);
@@ -285,7 +327,7 @@ public class PeerManager extends Thread
 						break;
 					
 					case Message.UNCHOKE_ID:
-						// if peer isn't choked and is interested, send piece request
+						// if peer isn't choked and is interested, send request message
 						p.setClientChoked(false);
 						if(p.getClientInterested())
 						{
@@ -296,12 +338,11 @@ public class PeerManager extends Thread
 					case HaveMessage.HAVE_ID:
 						HaveMessage hm = (HaveMessage) msg;
 						Util.setBit(p.getBitfield(), hm.getPieceIndex());
-						p.setPeerPieces(Util.getPeerPieces(p.getBitfield()));
 						if(interestedInBitfield(p.getBitfield()))
 						{
 							if(!sendMessage(Message.INTERESTED_MSG, p))
 							{
-								removePeer(p);
+								removeConnectedPeer(p);
 								break;
 							}
 							p.setClientInterested(true);
@@ -332,17 +373,18 @@ public class PeerManager extends Thread
 					case RequestMessage.REQUEST_ID:
 						RequestMessage rMsg = (RequestMessage) msg;
 						int pieceIndex = rMsg.getPieceIndex();
+						
 						// if this peer is interested and unchoked
 						if(!(p.getPeerChoked()) && p.getPeerInterested())
 						{
 							// if we have downloaded this piece
-							if ((Util.getPeerPieces(bitfield)).contains(pieceIndex))
+							if (Util.isBitSet(bitfield, pieceIndex))
 							{
 								byte[] block = fileToBytes(pieceIndex, rMsg.getBlockLength());
 								PieceMessage pieceMsg = new PieceMessage(pieceIndex, rMsg.getByteOffset(), block);
 								if (!sendMessage(pieceMsg, p))
 								{
-									removePeer(p);
+									removeConnectedPeer(p);
 									break;
 								}
 								amountUploaded += rMsg.getBlockLength();
@@ -352,26 +394,39 @@ public class PeerManager extends Thread
 							{
 								if (!sendMessage(Message.CHOKE_MSG, p))
 								{
-									removePeer(p);
+									removeConnectedPeer(p);
 									break;
 								}
 								p.setPeerChoked(true);
+								numUnchokedConnections--;
 							}
 						}
 						break;
 						
 					case BitfieldMessage.BITFIELD_ID:
 						
-						// need to check whether or not bitfield message bitfield has pieces we dont have
 						BitfieldMessage bm = (BitfieldMessage) msg;
 						byte[] receivedBitfield = bm.getBitfield();
-						p.setPeerPieces(Util.getPeerPieces(receivedBitfield));
+						
+						// NOTE: TA said to assume that .131 address has all pieces
+						// for some reason, the bitfield it sends is missing pieces 432-435
+						// just set these pieces as a work-around
+						if (p.getIP().equals("128.6.171.131"))
+						{
+							
+							Util.setBit(receivedBitfield, 432);
+							Util.setBit(receivedBitfield, 433);
+							Util.setBit(receivedBitfield, 434);
+							Util.setBit(receivedBitfield, 435);
+						}
+						
+						p.setBitfield(receivedBitfield);
 						if (interestedInBitfield(receivedBitfield))
 						{
 							p.setClientInterested(true);
 							if (!sendMessage(Message.INTERESTED_MSG, p))
 							{
-								removePeer(p);
+								removeConnectedPeer(p);
 								break;
 							}
 						}
@@ -380,7 +435,11 @@ public class PeerManager extends Thread
 							p.setClientInterested(false);
 						}
 						break;
-						
+					
+					case Message.ERROR_ID:
+						System.err.println("received an unkown message from " + p.getIP());
+						removeConnectedPeer(p);
+						break;	
 	
 				}
 			}
@@ -440,9 +499,9 @@ public class PeerManager extends Thread
 		return bytes;
 	}
 	
-	public void addPeer(Peer p)
+	public void addConnectedPeer(Peer p)
 	{
-		this.rutgersPeers.add(p);
+		this.connectedPeers.add(p);
 	}
 	
 	
@@ -457,19 +516,25 @@ public class PeerManager extends Thread
 		{
 			return false;
 		}
+		catch (NullPointerException e)
+		{
+			return false;
+		}
 		return true;
 	}
 	
-	public void removePeer(Peer p)
+	public void removeConnectedPeer(Peer p)
 	{
-		rutgersPeers.remove(p);
+		connectedPeers.remove(p);
 		p.stopListening();
 	}
 	
+	/*
 	public List<Peer> getRutgersPeers()
 	{
 		return this.rutgersPeers;
 	}
+	*/
 }
 	
 	
