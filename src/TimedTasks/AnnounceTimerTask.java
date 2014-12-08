@@ -21,10 +21,15 @@ public class AnnounceTimerTask extends TimerTask
 	public void run() 
 	{
 	
+		System.out.println("announcing to peer list");
+		pMgr.getTracker().announce(
+				pMgr.getAmountLeft(),
+				Integer.toString(pMgr.getAmountUploaded()),
+				Integer.toString(pMgr.getAmountDownloaded()),
+				"");
 		
-		
-		
-		
+		pMgr.getAnnounceTimer().cancel();
+		pMgr.getAnnounceTimer().schedule(this, pMgr.getTracker().getInterval() * 1000);
 	}
 
 }

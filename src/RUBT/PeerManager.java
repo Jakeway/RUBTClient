@@ -19,6 +19,7 @@ import Message.HaveMessage;
 import Message.Message;
 import Message.PieceMessage;
 import Message.RequestMessage;
+import TimedTasks.AnnounceTimerTask;
 import TimedTasks.OptimisticChokingTimerTask;
 
 public class PeerManager extends Thread
@@ -62,6 +63,9 @@ public class PeerManager extends Thread
 	private Timer optChokingTimer;
 	private TimerTask optChokingTask;
 	
+	private Timer announceTimer;
+
+	
 	public PeerManager(TorrentInfo ti, RandomAccessFile destFile,
 			Tracker tracker, boolean DEBUG) 
 	{
@@ -86,6 +90,7 @@ public class PeerManager extends Thread
 		activeSeeds = new ArrayList<Peer>();
 		optChokingTimer = new Timer();
 		optChokingTask = new OptimisticChokingTimerTask(this);
+		announceTimer = new Timer();
 	}
 	
 	public Timer getOptChokingTimer()
@@ -96,6 +101,7 @@ public class PeerManager extends Thread
 	public void stopTimers()
 	{
 		optChokingTimer.cancel();
+		announceTimer.cancel();
 	}
 	
 	public ArrayList<Peer> getChokedPeers()
@@ -332,6 +338,10 @@ public class PeerManager extends Thread
 		
 		// schedule the optmistic choking task to run every 30 seconds, 30 seconds from now.
 		optChokingTimer.scheduleAtFixedRate(optChokingTask, 30 * 1000, 30 * 1000);
+		
+		// we can't schedule this task at fixed rate, because interval changes dynamically
+		announceTimer.schedule(new AnnounceTimerTask(this), tracker.getInterval() * 1000);
+		
 		while (keepRunning)
 		{
 			try
@@ -613,14 +623,29 @@ public class PeerManager extends Thread
 		p.stopListening();
 	}
 	
-	/*
-	public List<Peer> getRutgersPeers()
+	public Tracker getTracker()
 	{
-		return this.rutgersPeers;
+		return this.tracker;
 	}
-	*/
+	
+	public int getAmountLeft()
+	{
+		return this.amountLeft;
+	}
+	
+	public int getAmountUploaded()
+	{
+		return this.amountUploaded;
+	}
+	
+	public int getAmountDownloaded()
+	{
+		return this.amountDownloaded;
+	}
+	
+	
+	public Timer getAnnounceTimer()
+	{
+		return this.announceTimer;
+	}
 }
-	
-	
-	
-	
