@@ -13,12 +13,13 @@ public class OptimisticChokingTimerTask extends TimerTask
 	public OptimisticChokingTimerTask(PeerManager pMgr)
 	{
 		this.pMgr = pMgr;
+		
+	
 	}
 	
 	@Override
 	public void run() 
 	{
-		System.out.println("running task");
 		// only attempt if a) there are 3 unchoked connections and b) there is at least one choked connection
 		
 		// randomly choose choked peer

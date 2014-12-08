@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
@@ -256,47 +257,43 @@ public class PeerManager extends Thread
 			e.printStackTrace();
 		}
 	}
-	
+
 	
 	public void generateRequestMessage(Peer p)
 	{
-		//need to check the peers bitfiled and see what pieces it has and then request a piece based on that
-		//System.out.println(piecesLeft.size());
-		
-		
-		// this code was used to try to figure out why we were getting stuck at 4 pieces left.
-		// turns out the rutgers .131 peer is not sending the correct bitfield.
-		// to remedy this, TA just told us to assume .131 has all pieces and don't look at it's bitfield.
-		
-		/*
-		if (piecesLeft.size() == 4)
+		// implements rarest piece first algorithm
+		ArrayList<Rarity> rarePieces = new ArrayList<Rarity>();
+		for (int i = 0; i < this.numPieces; i++)
 		{
-			for (int i : piecesLeft)
-			{
-				System.out.println(i);
-			}
-			System.out.println("our bitfield");
-			Util.iterateBitfield(bitfield);
-			
-			System.out.println("their bitfield");
-			Util.iterateBitfield(p.getBitfield());
+			rarePieces.add(new Rarity(i));
 		}
-		*/
-		int random = Util.getRandomInt(piecesLeft.size());
-		int pieceIndex = piecesLeft.get(random);
-		while (true)
+		
+		for (Peer connectedPeer : this.connectedPeers)
 		{
-			//				 the peer has piece we need			        we don't yet have this piece
-			if (	(Util.isBitSet(p.getBitfield(), pieceIndex))  && (!Util.isBitSet(bitfield, pieceIndex))		)
+			byte[] bitfield = connectedPeer.getBitfield();
+			if (bitfield == null) continue;
+			for (int i = 0; i < this.numPieces; i++)
+			{
+				if (Util.isBitSet(bitfield, i))
+				{
+					rarePieces.get(i).decreaseRarity();
+				}
+			}
+		}
+		// sorts in descending order (rarest piece is first)
+		Collections.sort(rarePieces, Collections.reverseOrder());
+		
+		int pieceIndex = 0;
+		for (Rarity rarePiece : rarePieces)
+		{
+			pieceIndex = rarePiece.getPieceIndex();
+			//			 the peer has piece we need			            we don't yet have this piece
+			if (    (Util.isBitSet(p.getBitfield(), pieceIndex))  && (!Util.isBitSet(bitfield, pieceIndex))     ) 
 			{
 				break;
 			}
-			else
-			{
-				random = Util.getRandomInt(piecesLeft.size());
-				pieceIndex = piecesLeft.get(random);
-			}
 		}
+		
 		int length;
 		if (pieceIndex == numPieces-1) // getting the last piece
 		{
