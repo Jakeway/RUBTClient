@@ -648,4 +648,9 @@ public class PeerManager extends Thread
 	{
 		return this.announceTimer;
 	}
+
+	public void createNewAnnounceTimer()
+	{
+		this.announceTimer = new Timer();
+	}
 }

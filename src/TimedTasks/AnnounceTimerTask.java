@@ -29,6 +29,7 @@ public class AnnounceTimerTask extends TimerTask
 				"");
 		
 		pMgr.getAnnounceTimer().cancel();
+		pMgr.createNewAnnounceTimer();
 		pMgr.getAnnounceTimer().schedule(this, pMgr.getTracker().getInterval() * 1000);
 	}
 
