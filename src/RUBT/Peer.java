@@ -46,8 +46,13 @@ public class Peer extends Thread
 	
 	private boolean clientInterested;
 
-
 	private byte[] bitfield;
+	
+	// pieces the peer has downloaded from us
+	private int piecesDownloaded;
+	
+	// pieces the peer has uploaded to us
+	private int piecesUploaded;
 
 
 	//private ArrayList<Integer> peerPieces;
@@ -65,6 +70,8 @@ public class Peer extends Thread
 		this.peerInterested = false;
 		this.clientChoked = true;
 		this.peerChoked = true;
+		this.piecesDownloaded = 0;
+		this.piecesUploaded = 0;
 	}
 	
 	public Peer(String ip, int port, String localID, Socket s)
@@ -77,6 +84,8 @@ public class Peer extends Thread
 		this.clientChoked = true;
 		this.peerChoked = true;
 		this.s = s;
+		this.piecesDownloaded = 0;
+		this.piecesUploaded = 0;
 	}
 	
 	
@@ -157,6 +166,25 @@ public class Peer extends Thread
 		return this.outStream;
 	}
 	
+	public int getPiecesDownloaded()
+	{
+		return this.piecesDownloaded;
+	}
+	
+	public void setPiecesDownloaded(int piecesDownloaded)
+	{
+		this.piecesDownloaded = piecesDownloaded;
+	}
+	
+	public int getPiecesUploaded()
+	{
+		return this.piecesUploaded;
+	}
+	
+	public void setPiecesUploaded(int piecesUploaded)
+	{
+		this.piecesUploaded = piecesUploaded;
+	}
 	
 	private void generateHandshake()
 	{

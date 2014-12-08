@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -16,6 +18,7 @@ import Message.HaveMessage;
 import Message.Message;
 import Message.PieceMessage;
 import Message.RequestMessage;
+import TimedTasks.OptimisticChokingTimerTask;
 
 public class PeerManager extends Thread
 {
@@ -23,6 +26,20 @@ public class PeerManager extends Thread
 	private ArrayList<Integer> piecesLeft;
 	private ArrayList<Peer> trackerPeers;
 	private ArrayList<Peer> connectedPeers;
+	
+	
+	// peers we have choked who we can download from
+	private ArrayList<Peer> chokedSeeds;
+	
+	// peers we have choked who we can upload to
+	private ArrayList<Peer> chokedPeers;
+	
+	// active peers are the ones we are currently downloading from
+	private ArrayList<Peer> activeSeeds;
+	
+	// active peers we are currently uploading to
+	private ArrayList<Peer> activePeers;
+	
 	//private List<Peer> rutgersPeers;
 	private Tracker tracker;
 	private byte[] bitfield;
@@ -39,7 +56,10 @@ public class PeerManager extends Thread
 	private boolean DEBUG;
 	private byte[] info_hash;
 	private Peer debugPeer;
-	private int numUnchokedConnections;
+	
+	
+	private Timer optChokingTimer;
+	private TimerTask optChokingTask;
 	
 	public PeerManager(TorrentInfo ti, RandomAccessFile destFile,
 			Tracker tracker, boolean DEBUG) 
@@ -58,9 +78,51 @@ public class PeerManager extends Thread
 		bitfield = new byte[getBitfieldLength()];
 		amountLeft = fileLength;
 		jobs = new LinkedBlockingQueue<Job>();
-		numUnchokedConnections = 0;
 		connectedPeers = new ArrayList<Peer>();
+		chokedPeers = new ArrayList<Peer>();
+		activePeers = new ArrayList<Peer>();
+		chokedSeeds = new ArrayList<Peer>();
+		activeSeeds = new ArrayList<Peer>();
+		optChokingTimer = new Timer();
+		optChokingTask = new OptimisticChokingTimerTask(this);
 	}
+	
+	public Timer getOptChokingTimer()
+	{
+		return optChokingTimer; 	
+	}
+	
+	public void stopTimers()
+	{
+		optChokingTimer.cancel();
+	}
+	
+	public ArrayList<Peer> getChokedPeers()
+	{
+		return chokedPeers;
+	}
+	
+	public ArrayList<Peer> getActivePeers()
+	{
+		return activePeers;
+	}
+	
+	public ArrayList<Peer> getChokedSeeds()
+	{
+		return chokedSeeds;
+	}
+	
+	public ArrayList<Peer> getActiveSeeds()
+	{
+		return activeSeeds;
+	}
+	
+	public Peer getRandomlyChokedElement(ArrayList<Peer> choked)
+	{
+		int r = Util.getRandomInt(choked.size());
+		return choked.get(r);
+	}
+
 	
 	public int getBitfieldLength()
 	{
@@ -271,6 +333,8 @@ public class PeerManager extends Thread
 	{
 		startDownloading();
 		
+		// schedule the optmistic choking task to run every 30 seconds, 30 seconds from now.
+		optChokingTimer.scheduleAtFixedRate(optChokingTask, 30 * 1000, 30 * 1000);
 		while (keepRunning)
 		{
 			try
@@ -286,22 +350,19 @@ public class PeerManager extends Thread
 					
 					case Message.INTERESTED_ID:
 						
-						// set peer to be in an interested state
+						// interested.. they want to download from us, so we are seed.. they are peer
+						
 						p.setPeerInterested(true);
-						
-						
-						
-						// perhaps should keep two lists of connected peers. (... or just use a boolean?)
-						// one for peers that are unchoked, one for are choked
-						// then when we do optimistic choking, pick peer with worst download rate of unchoked, and try a peer from the choked list
-						
-						if (numUnchokedConnections > 3)
+						if (activePeers.size() >= 3)
 						{
+							
 							if (!sendMessage(Message.CHOKE_MSG, p))
 							{
 								removeConnectedPeer(p);
 								break;
 							}
+							p.setPeerChoked(true);
+							chokedPeers.add(p);
 						}
 						else
 						{
@@ -313,7 +374,7 @@ public class PeerManager extends Thread
 							else
 							{
 								p.setPeerChoked(false);
-								numUnchokedConnections++;
+								activePeers.add(p);
 								break;
 							}
 						}
@@ -323,15 +384,37 @@ public class PeerManager extends Thread
 						break;
 						
 					case Message.CHOKE_ID:
+						// a peer we are downloading from (a seed) will send choke messages
 						p.setClientChoked(true);
+						if (activeSeeds.contains(p))
+						{
+							activeSeeds.remove(p);
+						}
+						if (!chokedSeeds.contains(p))
+						{
+							chokedSeeds.add(p);
+						}
 						break;
 					
 					case Message.UNCHOKE_ID:
 						// if peer isn't choked and is interested, send request message
-						p.setClientChoked(false);
+						
 						if(p.getClientInterested())
 						{
-							generateRequestMessage(p);
+							// already downloading from 3 seeds, add to choked seeds
+							if (activeSeeds.size() >= 3)
+							{
+								chokedSeeds.add(p);
+								p.setClientChoked(true);
+								break;
+							}
+							else
+							{
+								activeSeeds.add(p);
+								p.setClientChoked(false);
+								generateRequestMessage(p);
+							}
+							
 						}
 						break;
 						
@@ -357,6 +440,7 @@ public class PeerManager extends Thread
 							PieceMessage pm = (PieceMessage) msg;
 							if (Util.verifyHash(pm.getBlock(), piece_hashes[pm.getPieceIndex()].array()))
 							{
+								p.setPiecesUploaded(p.getPiecesUploaded() + 1);
 								digestPieceMessage(pm);
 							}
 							if ( piecesLeft.size() > 0)
@@ -388,6 +472,7 @@ public class PeerManager extends Thread
 									break;
 								}
 								amountUploaded += rMsg.getBlockLength();
+								p.setPiecesDownloaded(p.getPiecesDownloaded() + 1);
 							}
 							//we do not have the piece they requested
 							else
@@ -398,7 +483,9 @@ public class PeerManager extends Thread
 									break;
 								}
 								p.setPeerChoked(true);
-								numUnchokedConnections--;
+								// punish peer for bad behavior
+								activePeers.remove(p);
+								chokedPeers.add(p);
 							}
 						}
 						break;

@@ -100,6 +100,7 @@ public class RUBTClient
 				peerMgr.closeSaveFile();
 				peerMgr.stopProcessingJobs();
 				peerMgr.interrupt();
+				peerMgr.stopTimers();
 				break;
 			}
 		}
